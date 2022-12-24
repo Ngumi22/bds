@@ -1,0 +1,26 @@
+.sell{
+    margin-top: 100px;
+}
+
+@media (max-width: 800px) {
+    .navbar{
+        
+        max-height: 120px;
+    }
+    .sell{
+        margin-top: 120px;
+        padding: 0;
+    }
+    .sidebar {
+      display: none;
+    }
+    .grid__item3{
+        display: none;
+        
+    }
+    
+    .text-center{
+        display: inline-block;
+        padding: 0px;
+    }
+  }

@@ -1,0 +1,834 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "mongodb"
+  url = env("DIRECT_DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+  EDITOR
+  SUPPORT
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+  FAILED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  OVERDUE
+  CANCELLED
+  FAILED
+  PARTIALLY_REFUNDED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CollectionType {
+  STATIC
+  DYNAMIC
+  FLASH_SALE
+  SEASONAL
+}
+
+enum ShippingRateType {
+  FLAT_RATE
+  WEIGHT_BASED
+  VALUE_BASED
+  FREE
+}
+
+enum InventoryChangeType {
+  SALE
+  RETURN
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  MANUAL_UPDATE
+  TRANSFER
+  DAMAGED
+  EXPIRED
+}
+
+enum MetricGranularity {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum StockStatus {
+  IN_STOCK
+  LOW_STOCK
+  OUT_OF_STOCK
+  BACKORDER
+  DISCONTINUED
+}
+
+enum DiscountApplicability {
+  ALL_PRODUCTS
+  SPECIFIC_PRODUCTS
+  SPECIFIC_CATEGORIES
+  SPECIFIC_BRANDS
+}
+
+type CartItem {
+  variantId String @db.ObjectId
+  quantity  Int
+  price     Float
+  addedAt   DateTime @default(now())
+}
+
+type OrderItem {
+  productId   String  @db.ObjectId
+  productName String
+  variantId   String  @db.ObjectId
+  variantName String
+  quantity    Int
+  price       Float
+  total       Float
+  sku         String?
+}
+
+type OrderAddressSnapshot {
+  fullName     String
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  postalCode   String
+  country      String
+  phone        String?
+}
+
+type ProductDimensions {
+  length Float
+  width  Float
+  height Float
+  unit   String
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+
+  role          String    @default("user")
+  banned        Boolean   @default(false)
+  banReason     String?
+  banExpires    DateTime?
+
+  sessions      Session[]
+  accounts      Account[]
+
+  customerProfile CustomerProfile?
+
+  productsCreated Product[]        @relation("ProductsByUser")
+  activityLogs    AdminActivityLog[]
+  invitationsSent AdminInvitation[] @relation("AdminInviter")
+
+  @@map("user")
+  notifications Notification[] @relation("UserNotifications")
+  settings Setting[] @relation("updatedBy")
+  blogPosts BlogPost[] @relation("BlogAuthor")
+  inventoryLogs InventoryLog[] @relation("InventoryLogCreatedBy")
+}
+
+model Session {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  expiresAt DateTime
+  token     String
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(auto()) @map("_id") @db.ObjectId
+  accountId             String
+  providerId            String
+  userId                String    @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+model CustomerProfile {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @unique @db.ObjectId
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+
+  phone       String?
+  totalSpent  Float     @default(0)
+  orderCount  Int       @default(0)
+  lastOrderAt DateTime?
+
+  addresses   Address[]
+  orders      Order[]
+  reviews     Review[]
+  cart        Cart?
+  wishlist    Wishlist?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([totalSpent, lastOrderAt])
+  @@map("customer_profiles")
+  paymentMethods PaymentMethod[]
+}
+
+model AdminInvitation {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  email         String   @unique
+  role          String   @default("admin")
+  status        String   @default("pending")
+  expiresAt     DateTime
+  inviterId     String   @db.ObjectId
+  inviter       User     @relation("AdminInviter", fields: [inviterId], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@map("admin_invitations")
+}
+
+model AdminActivityLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  resource  String
+  details   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@map("admin_activity_logs")
+}
+
+
+type Address {
+  label        String?
+  fullName     String
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  postalCode   String
+  country      String
+  phone        String?
+  isDefault    Boolean   @default(false)
+}
+
+
+
+
+model SpecificationDefinition {
+  id           String                     @id @default(auto()) @map("_id") @db.ObjectId
+  key          String
+  name         String
+  categoryId   String                     @db.ObjectId
+  category     Category                   @relation(fields: [categoryId], references: [id])
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+
+  productSpecificationValues ProductSpecificationValue[]
+
+
+  @@index([categoryId, key])
+  @@map("specification_definitions")
+}
+
+model ProductSpecificationValue {
+  id                    String                     @id @default(auto()) @map("_id") @db.ObjectId
+  value                 String
+  productId             String                     @db.ObjectId
+  specificationDefId    String                     @db.ObjectId
+  product               Product                    @relation(fields: [productId], references: [id])
+  specificationDef      SpecificationDefinition     @relation(fields: [specificationDefId], references: [id])
+  @@index([specificationDefId])
+  @@index([productId])
+  @@map("product_specification_values")
+}
+
+
+model Product {
+  id                String                    @id @default(auto()) @map("_id") @db.ObjectId
+  name              String
+  slug              String                    @unique
+  shortDescription  String
+  description       String
+
+  price             Float
+  originalPrice     Float?
+  taxRate           Float?
+
+  guarantee         String?
+
+  deliveryDate      String?
+  shipsIn           String?
+  recentPurchases   String[]
+
+  mainImage         String
+  galleryImages     String[]
+  videoUrl          String?
+
+  sku               String?
+  isActive          Boolean                   @default(true)
+  hasVariants       Boolean                   @default(false)
+  stockStatus       StockStatus               @default(IN_STOCK)
+  stockCount        Int                       @default(0)
+
+  viewingNow        Int?                      @default(0)
+
+  categoryId        String                    @db.ObjectId
+  brandId           String                    @db.ObjectId
+  category          Category                  @relation(fields: [categoryId], references: [id])
+  brand             Brand                     @relation(fields: [brandId], references: [id])
+
+  specifications    ProductSpecificationValue[]
+  variantGroups     VariantGroup[]
+  features          ProductFeature[]
+
+  reviews           Review[]
+  collections       ProductsOnCollections[]
+  shippingInfo      ShippingInfo?
+
+  featured          Boolean                   @default(false)
+  salesCount        Int                       @default(0)
+  viewCount         Int                       @default(0)
+  averageRating     Float                     @default(0)
+  reviewCount       Int                       @default(0)
+
+  createdById       String?                   @db.ObjectId
+  createdBy         User?                     @relation("ProductsByUser", fields: [createdById], references: [id])
+  WishlistItem      WishlistItem[]
+
+  applicableDiscounts DiscountsOnProducts[]
+
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  @@index([isActive, categoryId, brandId, price, createdAt(Desc), salesCount(Desc)])
+
+  @@fulltext([name, slug, shortDescription, description], map: "products")
+  @@map("products")
+}
+
+
+
+model ProductFeature {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  icon        String
+  title       String
+  description String
+
+  productId   String    @db.ObjectId
+  product     Product   @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+  @@map("product_features")
+}
+
+
+model VariantGroup {
+  id         String          @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  value      String?
+  productId  String          @db.ObjectId
+  product    Product         @relation(fields: [productId], references: [id])
+  options    VariantOption[]
+  @@index([productId])
+  @@map("variant_groups")
+}
+
+model VariantOption {
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  value           String?
+  color           String?
+  inStock         Boolean        @default(true)
+  stockCount      Int            @default(0)
+  priceModifier   Float          @default(0)
+  variantGroupId  String         @db.ObjectId
+  variantGroup    VariantGroup   @relation(fields: [variantGroupId], references: [id])
+  inventoryLogs   InventoryLog[]
+
+  @@index([variantGroupId])
+  @@map("variant_options")
+}
+
+
+model ShippingInfo {
+  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
+  productId           String    @unique @db.ObjectId
+  product             Product   @relation(fields: [productId], references: [id])
+  freeShipping        Boolean   @default(true)
+  estimatedDelivery   String?
+  returnPolicy        String?
+  warranty            String?
+
+  @@map("shipping_info")
+}
+
+
+model Category {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  slug        String        @unique
+  image       String?
+  isActive    Boolean       @default(true)
+  parentId    String?       @db.ObjectId
+
+  parent      Category?     @relation("CategoryChildren", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children    Category[]    @relation("CategoryChildren")
+  specifications SpecificationDefinition[]
+  products    Product[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([parentId, isActive])
+  @@map("categories")
+}
+
+model Brand {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  slug        String     @unique
+  logo        String?
+  description String?
+  isActive    Boolean    @default(true)
+  products    Product[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([isActive])
+  @@map("brands")
+}
+
+model Order {
+  id                String          @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber       String          @unique
+  status            OrderStatus     @default(PENDING)
+  paymentStatus     PaymentStatus   @default(PENDING)
+  items             OrderItem[]
+  subtotal          Float
+  tax               Float
+  total             Float
+  currency          String          @default("USD")
+  shippingAddress   OrderAddressSnapshot
+  billingAddress    OrderAddressSnapshot?
+  customerProfileId String?         @db.ObjectId
+  customerProfile   CustomerProfile?@relation(fields: [customerProfileId], references: [id])
+  customerName      String
+  customerEmail     String
+  discountId        String?         @db.ObjectId
+  appliedDiscount   Discount?       @relation(fields: [discountId], references: [id])
+  discountAmount    Float           @default(0)
+  payments          Payment[]
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  @@index([customerProfileId])
+  @@index([status])
+  @@map("orders")
+}
+
+model PaymentMethod {
+  id                  String          @id @default(auto()) @map("_id") @db.ObjectId
+  customerProfileId   String          @db.ObjectId
+  customerProfile     CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
+  provider            String
+  type                String
+  token               String
+  lastFour            String?
+  expiryMonth         Int?
+  expiryYear          Int?
+  isDefault           Boolean         @default(false)
+  payments            Payment[]
+
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([customerProfileId, isDefault])
+  @@map("payment_methods")
+}
+
+model Payment {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  orderId         String          @db.ObjectId
+  order           Order           @relation(fields: [orderId], references: [id])
+  provider        String
+  amount          Float
+  currency        String          @default("KES")
+  status          PaymentStatus   @default(PENDING)
+  paymentMethodId String?         @db.ObjectId
+  paymentMethod   PaymentMethod?  @relation(fields: [paymentMethodId], references: [id])
+  refundedAmount  Float           @default(0)
+  createdAt       DateTime        @default(now())
+  @@index([orderId])
+  @@map("payments")
+}
+
+model Discount {
+  id                String                  @id @default(auto()) @map("_id") @db.ObjectId
+  code              String                  @unique
+  name              String
+  description       String?
+  type              DiscountType
+  value             Float            
+  minOrderValue     Float?                  
+  isFreeShipping    Boolean                 @default(false)
+  startsAt          DateTime
+  expiresAt         DateTime?
+  maxUses           Int?                    
+  usesCount         Int                     @default(0)
+  maxUsesPerCustomer Int?
+  isActive          Boolean                 @default(true)
+
+  applicability     DiscountApplicability   @default(ALL_PRODUCTS)
+  applicableCategoryIds String[]            @db.ObjectId
+  applicableBrandIds    String[]            @db.ObjectId
+  applicableProducts    DiscountsOnProducts[]
+
+  orders            Order[]
+
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  @@index([code, isActive, expiresAt])
+  @@map("discounts")
+}
+
+model DiscountsOnProducts {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  discountId    String     @db.ObjectId
+  discount      Discount   @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  productId     String     @db.ObjectId
+  product       Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([discountId, productId])
+  @@map("discounts_on_products")
+}
+
+model ShippingZone {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  countries   String[]
+
+  rates       ShippingRate[] @relation("ShippingRateToZone")
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([isActive])
+  @@map("shipping_zones")
+}
+
+model ShippingRate {
+  id          String          @id @default(auto()) @map("_id") @db.ObjectId
+  zoneId      String          @db.ObjectId
+
+  zone        ShippingZone    @relation("ShippingRateToZone", fields: [zoneId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  name        String
+  rateType    ShippingRateType
+  baseCost    Float
+  minOrderValue Float?
+  maxOrderValue Float?
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  @@index([zoneId, isActive])
+  @@map("shipping_rates")
+}
+
+model InventoryLog {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  variantOptionId String          @db.ObjectId
+  variantOption   VariantOption   @relation(fields: [variantOptionId], references: [id], onDelete: Cascade)
+
+  changeType      InventoryChangeType
+  quantityChange  Int
+  stockBefore     Int
+  stockAfter      Int
+
+  createdById     String?         @db.ObjectId
+  createdBy       User?           @relation("InventoryLogCreatedBy", fields: [createdById], references: [id])
+
+  createdAt       DateTime        @default(now())
+
+  @@index([variantOptionId, changeType])
+  @@map("inventory_logs")
+}
+
+model Review {
+  id                  String            @id @default(auto()) @map("_id") @db.ObjectId
+  rating              Float
+  comment             String
+
+  author              String
+  title               String?
+  verified            Boolean           @default(false)
+  helpful             Int               @default(0)
+  images              String[]
+
+  customerProfileId   String            @db.ObjectId
+  customerProfile     CustomerProfile   @relation(fields: [customerProfileId], references: [id])
+  productId           String            @db.ObjectId
+  product             Product           @relation(fields: [productId], references: [id])
+  isPublished         Boolean           @default(true)
+
+  createdAt           DateTime          @default(now())
+
+  @@index([productId, rating])
+  @@map("reviews")
+}
+
+model Cart {
+  id                String          @id @default(auto()) @map("_id") @db.ObjectId
+  customerProfileId String          @unique @db.ObjectId
+  customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id])
+  items             CartItem[]
+  updatedAt         DateTime        @updatedAt
+  @@map("carts")
+}
+
+model Wishlist {
+  id                  String          @id @default(auto()) @map("_id") @db.ObjectId
+  customerProfileId   String          @unique @db.ObjectId
+  customerProfile     CustomerProfile @relation(fields: [customerProfileId], references: [id])
+  items               WishlistItem[]
+  @@map("wishlists")
+}
+
+model WishlistItem {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  wishlistId  String    @db.ObjectId
+  wishlist    Wishlist  @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  productId   String    @db.ObjectId
+  product     Product   @relation(fields: [productId], references: [id])
+  createdAt   DateTime  @default(now())
+  @@unique([wishlistId, productId])
+  @@map("wishlist_items")
+}
+
+
+model BlogCategory {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  slug        String   @unique
+  description String?
+  postCount   Int      @default(0)
+  posts       BlogPost[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@map("blog_categories")
+}
+
+
+model BlogPost {
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  slug        String         @unique
+  excerpt     String?
+  content     String
+  status      BlogPostStatus @default(DRAFT)
+  featuredImage String?
+  tags        String[]
+  metaTitle   String?
+  metaDescription String?
+  featured    Boolean        @default(false)
+  views       Int            @default(0)
+  publishedAt DateTime?
+
+  authorId    String         @db.ObjectId
+  author      User           @relation("BlogAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  categoryId  String         @db.ObjectId
+  category    BlogCategory   @relation(fields: [categoryId], references: [id])
+
+  relatedProductIds String[] @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@fulltext([title, excerpt, content, tags])
+  @@index([authorId, publishedAt])
+  @@index([status, publishedAt])
+  @@index([status, featured, publishedAt])
+  @@index([relatedProductIds])
+  @@map("blog_posts")
+}
+
+
+
+model HeroBanner {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  tag         String
+  description String
+  buttonText  String
+  image       String
+  linkUrl     String?
+  collectionId String?     @db.ObjectId
+
+  collection   Collection? @relation("CollectionBanners", fields: [collectionId], references: [id])
+  isActive    Boolean      @default(true)
+  order       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  @@index([isActive, order])
+  @@map("hero_banners")
+}
+
+model Collection {
+  id            String                 @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  slug          String                 @unique
+  description   String?
+  collectionType CollectionType        @default(STATIC)
+  products      ProductsOnCollections[]
+
+  startsAt      DateTime?
+  endsAt        DateTime?
+
+  banners       HeroBanner[]           @relation("CollectionBanners")
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  @@index([collectionType, startsAt, endsAt])
+  @@map("collections")
+}
+
+model ProductsOnCollections {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  collectionId  String     @db.ObjectId
+  collection    Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  productId     String     @db.ObjectId
+  product       Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order         Int        @default(0)
+  @@unique([collectionId, productId])
+  @@map("products_on_collections")
+}
+
+
+model Setting {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  key         String    @unique
+  value       String
+  updatedById String?   @db.ObjectId
+
+  updatedBy   User?     @relation("updatedBy", fields: [updatedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  updatedAt   DateTime  @updatedAt
+  @@map("settings")
+}
+
+model ReportMetric {
+  id          String             @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  value       Float
+  granularity MetricGranularity  @default(DAILY)
+  recordedAt  DateTime           @default(now())
+  @@index([name, recordedAt])
+  @@map("report_metrics")
+}
+
+model RateLimit {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  key         String    @unique
+  count       Int       @default(0)
+
+  lastRequest BigInt?
+
+  expiresAt   DateTime?
+
+  @@map("rate_limits")
+}
+
+model BlockedIp {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  ip         String   @unique
+  reason     String?
+  blockedAt  DateTime @default(now())
+  expiresAt  DateTime?
+  @@map("blocked_ips")
+}
+
+model SeedLog {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  type       String
+  executedAt DateTime @default(now())
+  @@map("seed_logs")
+}
+
+model Notification {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  user       User     @relation("UserNotifications", fields: [userId], references: [id])
+  title      String
+  message    String
+  link       String?
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  @@index([userId, read])
+  @@map("notifications")
+}

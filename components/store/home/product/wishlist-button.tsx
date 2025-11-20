@@ -14,7 +14,7 @@ import {
 
 interface WishlistButtonProps {
   product: MinimalProductData;
-  className?: string;
+  className?: string; // Added className to interface
 }
 
 const WishlistAction = ({ product, className }: WishlistButtonProps) => {
@@ -44,12 +44,11 @@ const WishlistAction = ({ product, className }: WishlistButtonProps) => {
             aria-label={label}
             className={cn(
               "flex items-center justify-center w-full h-full text-white hover:bg-white/20 transition-colors",
-              className
+              className // Ensure className is applied here
             )}>
             <Heart
-              size={20}
               className={cn(
-                "transition-colors",
+                "transition-colors h-3.5 w-3.5 md:h-5 md:w-5",
                 isInWishlist ? "fill-red-500 text-red-500" : "text-white"
               )}
             />
@@ -63,10 +62,18 @@ const WishlistAction = ({ product, className }: WishlistButtonProps) => {
   );
 };
 
-export function WishlistButtonSmall({ product }: WishlistButtonProps) {
-  return <WishlistAction product={product} />;
+export function WishlistButtonSmall({
+  product,
+  className,
+}: WishlistButtonProps) {
+  // Now passes className down to WishlistAction
+  return <WishlistAction product={product} className={className} />;
 }
 
-export function WishlistButtonFull({ product }: WishlistButtonProps) {
-  return <WishlistAction product={product} />;
+export function WishlistButtonFull({
+  product,
+  className,
+}: WishlistButtonProps) {
+  // Now passes className down to WishlistAction
+  return <WishlistAction product={product} className={className} />;
 }

@@ -115,6 +115,7 @@ export default function HomePageClient({
               collectionSlug={flashSaleData.collectionSlug}
             />
           )}
+          <PromotionalSection />
           {categoriesWithSubs.map((categoryData) => (
             <CatSection key={categoryData.slug} category={categoryData} />
           ))}
@@ -122,7 +123,7 @@ export default function HomePageClient({
           {brandsWithProducts && brandsWithProducts.length > 0 && (
             <BrandSection brandsWithProducts={brandsWithProducts} />
           )}
-
+          <PromotionalSection />
           {featuredCollections.map((collection) => (
             <Colle
               key={collection.id}
@@ -149,7 +150,7 @@ export default function HomePageClient({
               title={collection.name}
               products={collection.products}
             />
-          ))}
+          ))} */}
           {categoriesWithProducts &&
             categoriesWithProducts.length > 0 &&
             categoriesWithProducts.map((category) => (
@@ -169,7 +170,7 @@ export default function HomePageClient({
                 promoBannerPosition="right"
               />
             ))}
-          {collections && collections.length > 0 && (
+          {/* {collections && collections.length > 0 && (
             <CollectionsSection collections={collections} />
           )} */}
           <PromotionalSection1 />

@@ -47,26 +47,28 @@ export default function AddToCartButton({
     }
   };
 
-  // --- Determine State Configuration ---
-  let icon = <ShoppingCart size={20} />;
+  // Standardize icon size for mobile (w-4 h-4 matches other action bar icons)
+  const iconProps = { className: "w-4 h-4" };
+
+  let icon = <ShoppingCart {...iconProps} />;
   let label = "Add to cart";
   let onClick = handleAddToCart;
   let buttonClass = "";
   let disabled = false;
 
   if (isOutOfStock) {
-    icon = <XCircle size={20} />;
+    icon = <XCircle {...iconProps} />;
     label = "Sold out";
     onClick = () => {};
     disabled = true;
     buttonClass =
       "opacity-50 cursor-not-allowed hover:bg-transparent text-red-400";
   } else if (hasVariants) {
-    icon = <Eye size={20} />;
+    icon = <Eye {...iconProps} />;
     label = "View options";
     onClick = () => router.push(`/products/${product.slug}`);
   } else if (isInCart) {
-    icon = <Check size={20} />;
+    icon = <Check {...iconProps} />;
     label = "In cart";
     onClick = () => {};
     disabled = true;
@@ -74,25 +76,19 @@ export default function AddToCartButton({
   }
 
   return (
-    <TooltipProvider>
-      <Tooltip delayDuration={100}>
-        <TooltipTrigger asChild>
-          <button
-            onClick={onClick}
-            disabled={disabled && !isOutOfStock}
-            aria-label={label}
-            className={cn(
-              "flex items-center justify-center w-full h-full text-white hover:bg-white/20 transition-colors",
-              buttonClass,
-              className
-            )}>
-            {icon}
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">
-          <p>{label}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <button
+      onClick={onClick}
+      disabled={disabled && !isOutOfStock}
+      aria-label={label}
+      className={cn(
+        "flex items-center justify-center w-full h-full text-white hover:bg-white/20 transition-colors",
+        buttonClass,
+        className
+      )}>
+      <span className="lg:hidden">{icon}</span>
+      <span className="hidden lg:block text-xs font-semibold tracking-wider uppercase">
+        {label}
+      </span>
+    </button>
   );
 }

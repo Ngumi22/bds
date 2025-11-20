@@ -4,43 +4,17 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MinimalProductData } from "@/lib/product/product.types";
-
+import {
+  forwardRef,
+  Fragment,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { EmptyCard, ProductCard } from "./product-card";
-
-export interface VariantOption {
-  id: string;
-  name: string;
-  inStock: boolean;
-  color?: string;
-  priceModifier?: number;
-}
-
-export interface VariantType {
-  name: string;
-  options: VariantOption[];
-}
-
-export interface ProductQuickViewProps extends MinimalProductData {
-  originalPrice: number | null;
-  images: string[];
-  rating?: number;
-  reviewCount?: number;
-  brand?: string;
-  shipping?: {
-    freeShipping?: boolean;
-    estimatedDays?: number;
-  };
-  guarantee?: string;
-  inStock?: boolean;
-  variantTypes?: VariantType[];
-  viewingNow?: number;
-}
-
-export interface ProductCollection {
-  id: string;
-  name: string;
-  slug: string;
-}
 
 export interface TabConfig {
   id: string;
@@ -74,46 +48,52 @@ export function ProductSectionHeader({
   canScrollRight,
   onScrollLeft,
   onScrollRight,
+  icon,
 }: ProductSectionHeaderProps) {
   return (
     <div className="flex items-center justify-between mb-6 gap-4 flex-wrap sm:flex-nowrap">
-      <h2 className="text-lg font-semibold transition-colors uppercase tracking-wide">
-        {title}
-      </h2>
+      <div className="flex items-center gap-2">
+        {icon && <span className="text-gray-900">{icon}</span>}
+        <h2 className="text-base md:text-lg font-bold text-gray-900 uppercase tracking-wide">
+          {title}
+        </h2>
+      </div>
 
-      <div className="flex items-center justify-between gap-4 uppercase">
+      <div className="flex items-center justify-between gap-4 w-full sm:w-auto">
         {tabs && tabs.length > 0 ? (
-          <div className="flex items-center text-xs font-medium tracking-wider">
+          <div className="flex items-center text-xs font-normal tracking-wider overflow-x-auto no-scrollbar">
             {tabs.map((tab, index) => (
-              <React.Fragment key={tab.id}>
-                {index > 0 && <span className="text-gray-300 mx-1">|</span>}
+              <Fragment key={tab.id}>
+                {index > 0 && (
+                  <span className="text-gray-300 mx-1 md:mx-2">|</span>
+                )}
                 <button
                   onClick={() => onTabChange?.(tab.id)}
                   className={cn(
-                    "p-1 transition-colors whitespace-nowrap text-sm",
+                    "py-1 px-1 md:px-2 transition-colors whitespace-nowrap text-xs md:text-sm",
                     activeTab === tab.id
-                      ? "bg-gray-800 text-white"
-                      : "text-gray-600 hover:text-black"
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-500 hover:text-gray-900"
                   )}
                   aria-label={`Filter by ${tab.label}`}>
                   {tab.label}
                 </button>
-              </React.Fragment>
+              </Fragment>
             ))}
           </div>
         ) : (
           <div />
         )}
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center justify-end gap-1 shrink-0">
           <button
             onClick={onScrollLeft}
             disabled={!canScrollLeft}
             className={cn(
-              "p-1.5 border border-gray-200 transition-colors",
+              "p-1.5 border border-gray-200 transition-colors rounded-xs",
               canScrollLeft
-                ? "text-black hover:border-gray-400 cursor-pointer"
-                : "text-gray-300 cursor-not-allowed"
+                ? "text-gray-900 hover:border-gray-400 hover:bg-gray-50 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed bg-gray-50/50"
             )}
             aria-label="Scroll left">
             <ChevronLeft className="w-4 h-4" />
@@ -122,10 +102,10 @@ export function ProductSectionHeader({
             onClick={onScrollRight}
             disabled={!canScrollRight}
             className={cn(
-              "p-1.5 border border-gray-200 transition-colors",
+              "p-1.5 border border-gray-200 transition-colors rounded-xs",
               canScrollRight
-                ? "text-black hover:border-gray-400 cursor-pointer"
-                : "text-gray-300 cursor-not-allowed"
+                ? "text-gray-900 hover:border-gray-400 hover:bg-gray-50 cursor-pointer"
+                : "text-gray-300 cursor-not-allowed bg-gray-50/50"
             )}
             aria-label="Scroll right">
             <ChevronRight className="w-4 h-4" />
@@ -142,43 +122,48 @@ interface ProductGridProps {
   scrollTrigger?: number;
 }
 
-export const ProductGrid = React.forwardRef<HTMLDivElement, ProductGridProps>(
+export const ProductGrid = forwardRef<HTMLDivElement, ProductGridProps>(
   ({ products, onScrollChange, scrollTrigger }, ref) => {
-    const [loadedProducts, setLoadedProducts] = React.useState<Set<string>>(
+    const [loadedProducts, setLoadedProducts] = useState<Set<string>>(
       new Set()
     );
-    const observerRef = React.useRef<IntersectionObserver | null>(null);
-    const containerRef = React.useRef<HTMLDivElement>(null);
+    const observerRef = useRef<IntersectionObserver | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    React.useImperativeHandle(
-      ref,
-      () => containerRef.current as HTMLDivElement
-    );
+    useImperativeHandle(ref, () => containerRef.current as HTMLDivElement);
 
-    const updateScrollButtons = React.useCallback(() => {
+    const updateScrollButtons = useCallback(() => {
       if (!containerRef.current || !onScrollChange) return;
 
-      const { scrollLeft, scrollWidth, clientWidth } = containerRef.current;
-      const canScrollLeft = scrollLeft > 0;
-      const canScrollRight = scrollLeft < scrollWidth - clientWidth - 10;
+      requestAnimationFrame(() => {
+        if (!containerRef.current) return;
+        const { scrollLeft, scrollWidth, clientWidth } = containerRef.current;
+        const canScrollLeft = scrollLeft > 1;
+        const canScrollRight = scrollLeft < scrollWidth - clientWidth - 1;
 
-      onScrollChange(canScrollLeft, canScrollRight);
+        onScrollChange(canScrollLeft, canScrollRight);
+      });
     }, [onScrollChange]);
 
-    React.useEffect(() => {
+    useEffect(() => {
       observerRef.current = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
               const productId = entry.target.getAttribute("data-product-id");
               if (productId) {
-                setLoadedProducts((prev) => new Set(prev).add(productId));
+                setLoadedProducts((prev) => {
+                  if (prev.has(productId)) return prev;
+                  return new Set(prev).add(productId);
+                });
+                observerRef.current?.unobserve(entry.target);
               }
             }
           });
         },
         {
           rootMargin: "50px",
+          threshold: 0.1,
         }
       );
 
@@ -187,28 +172,30 @@ export const ProductGrid = React.forwardRef<HTMLDivElement, ProductGridProps>(
       };
     }, []);
 
-    React.useEffect(() => {
-      if (!observerRef.current) return;
+    useEffect(() => {
+      if (!observerRef.current || !containerRef.current) return;
 
-      const cards = containerRef.current?.querySelectorAll(".product-card");
-      cards?.forEach((card) => {
-        observerRef.current?.observe(card);
+      const wrappers = containerRef.current.querySelectorAll(
+        ".product-card-wrapper"
+      );
+      wrappers.forEach((wrapper) => {
+        observerRef.current?.observe(wrapper);
       });
 
       return () => {
-        cards?.forEach((card) => {
-          observerRef.current?.unobserve(card);
-        });
+        observerRef.current?.disconnect();
       };
     }, [products]);
 
-    React.useEffect(() => {
+    useEffect(() => {
       const container = containerRef.current;
       if (!container) return;
 
       updateScrollButtons();
 
-      container.addEventListener("scroll", updateScrollButtons);
+      container.addEventListener("scroll", updateScrollButtons, {
+        passive: true,
+      });
       window.addEventListener("resize", updateScrollButtons);
 
       return () => {
@@ -217,9 +204,9 @@ export const ProductGrid = React.forwardRef<HTMLDivElement, ProductGridProps>(
       };
     }, [updateScrollButtons]);
 
-    React.useEffect(() => {
+    useEffect(() => {
       if (containerRef.current) {
-        containerRef.current.scrollTo({ left: 0, behavior: "smooth" });
+        containerRef.current.scrollTo({ left: 0, behavior: "instant" });
       }
       setLoadedProducts(new Set());
     }, [scrollTrigger]);
@@ -228,7 +215,7 @@ export const ProductGrid = React.forwardRef<HTMLDivElement, ProductGridProps>(
       <>
         <div
           ref={containerRef}
-          className="flex gap-4 md:gap-6 overflow-x-auto scrollbar-hide scroll-smooth"
+          className="flex gap-2 md:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
@@ -238,11 +225,11 @@ export const ProductGrid = React.forwardRef<HTMLDivElement, ProductGridProps>(
                 <div
                   key={product.id}
                   data-product-id={product.id}
-                  className="product-card shrink-0 w-[calc(50%-8px)] sm:w-[calc(33.333%-16px)] lg:w-[calc(20%-19.2px)]"
+                  className="product-card-wrapper shrink-0 w-[calc(50%-8px)] sm:w-[calc(33.333%-16px)] lg:w-[calc(20%-19.2px)]"
                   style={{
                     animation: loadedProducts.has(product.id)
                       ? `slideIn 0.4s ease-out ${index * 0.05}s both`
-                      : "none",
+                      : "opacity-0",
                   }}>
                   <ProductCard
                     product={product}
@@ -285,7 +272,7 @@ ProductGrid.displayName = "ProductGrid";
 interface ProductSectionProps {
   config: ProductSectionConfig;
   products: MinimalProductData[];
-  filterKey?: keyof MinimalProductData;
+  filterKey?: keyof MinimalProductData | (string & {});
 }
 
 export function ProductSection({
@@ -293,32 +280,34 @@ export function ProductSection({
   products,
   filterKey,
 }: ProductSectionProps) {
-  const [activeTab, setActiveTab] = React.useState<string>(
+  const [activeTab, setActiveTab] = useState<string>(
     config.tabs?.[0]?.id || ""
   );
-  const [canScrollLeft, setCanScrollLeft] = React.useState(false);
-  const [canScrollRight, setCanScrollRight] = React.useState(true);
-  const [scrollTrigger, setScrollTrigger] = React.useState(0);
-  const gridRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [scrollTrigger, setScrollTrigger] = useState(0);
+  const gridRef = useRef<HTMLDivElement>(null);
 
-  const filteredProducts = React.useMemo(() => {
+  const filteredProducts = useMemo(() => {
     if (!config.tabs || !activeTab || !filterKey) {
       return products;
     }
-    return products.filter((product) => product[filterKey] === activeTab);
+    return products.filter(
+      (product) => (product as any)[filterKey] === activeTab
+    );
   }, [products, activeTab, config.tabs, filterKey]);
 
-  const handleScroll = React.useCallback((direction: "left" | "right") => {
+  const handleScroll = useCallback((direction: "left" | "right") => {
     if (!gridRef.current) return;
 
     const container = gridRef.current;
-    const cardWidth =
-      container.querySelector(".product-card")?.clientWidth || 200;
+    const firstCard = container.querySelector(".product-card-wrapper");
+    const cardWidth = firstCard ? firstCard.clientWidth : 250;
     const gap = 16;
+
     const isMobile = window.innerWidth < 768;
-    const scrollAmount = isMobile
-      ? (cardWidth + gap) * 2
-      : (cardWidth + gap) * 3;
+    const scrollMultiplier = isMobile ? 2 : 3;
+    const scrollAmount = (cardWidth + gap) * scrollMultiplier;
 
     const newScrollLeft =
       direction === "left"
@@ -331,21 +320,18 @@ export function ProductSection({
     });
   }, []);
 
-  const handleScrollChange = React.useCallback(
-    (left: boolean, right: boolean) => {
-      setCanScrollLeft(left);
-      setCanScrollRight(right);
-    },
-    []
-  );
+  const handleScrollChange = useCallback((left: boolean, right: boolean) => {
+    setCanScrollLeft(left);
+    setCanScrollRight(right);
+  }, []);
 
-  const handleTabChange = React.useCallback((tabId: string) => {
+  const handleTabChange = useCallback((tabId: string) => {
     setActiveTab(tabId);
     setScrollTrigger((prev) => prev + 1);
   }, []);
 
   return (
-    <section className="w-full py-2 md:py-6">
+    <section className="w-full py-2 md:py-6 group/section relative">
       <ProductSectionHeader
         title={config.title}
         tabs={config.tabs}

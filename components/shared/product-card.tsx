@@ -2,17 +2,8 @@
 
 import * as React from "react";
 import Image from "next/image";
-import Link from "next/link";
-import {
-  ShoppingCart,
-  Heart,
-  Repeat,
-  Eye,
-  Star,
-  Package,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Eye, Star, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MinimalProductData } from "@/lib/product/product.types";
 import { formatCurrency } from "@/lib/utils/form-helpers";
@@ -26,6 +17,7 @@ import { QuickViewDialog } from "../store/home/product/quick-view-dialog";
 import AddToCartButton from "../store/home/product/add-to-cart";
 import { WishlistButtonSmall } from "../store/home/product/wishlist-button";
 import QuickBuy from "../store/home/product/whatsapp";
+import { useCallback, useState } from "react";
 
 interface ProductCardProps {
   product: MinimalProductData;
@@ -33,15 +25,16 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, isLoaded }: ProductCardProps) {
+  const router = useRouter();
   const isSale =
     product.originalPrice !== null && product.originalPrice > product.price;
-  const [showQuickView, setShowQuickView] = React.useState(false);
+  const [showQuickView, setShowQuickView] = useState(false);
 
-  const handleQuickView = React.useCallback(() => {
+  const handleQuickView = useCallback(() => {
     setShowQuickView(true);
   }, []);
 
-  const handleCloseQuickView = React.useCallback(() => {
+  const handleCloseQuickView = useCallback(() => {
     setShowQuickView(false);
   }, []);
 
@@ -49,50 +42,40 @@ export function ProductCard({ product, isLoaded }: ProductCardProps) {
     <div className="hidden lg:flex items-center justify-between w-full h-10 bg-black divide-x divide-white/20">
       {product.hasVariants ? (
         <ActionButton
-          icon={<Package className="w-4 h-4" />}
+          icon={<Package className="h-3.5 w-3.5 md:h-5 md:w-5" />}
           label="View Options"
           onClick={handleQuickView}
+          className="w-1/2 flex-none"
         />
       ) : (
-        <AddToCartButton product={product} />
+        <AddToCartButton product={product} className="w-1/2 flex-none" />
       )}
       <ActionButton
-        icon={<Eye className="w-4 h-4" />}
+        icon={<Eye className="h-3.5 w-3.5 md:h-5 md:w-5" />}
         label="Quick View"
         onClick={handleQuickView}
+        className="flex-1"
       />
-      <WishlistButtonSmall product={product} />
-      <QuickBuy product={product} />
+      <WishlistButtonSmall product={product} className="flex-1 w-full h-full" />
+      <QuickBuy product={product} className="flex-1 w-full h-full" />
     </div>
   );
 
   const MobileActionBar = () => (
-    <div className="flex lg:hidden items-center justify-between w-full h-10 bg-black divide-x divide-white/20">
+    <div className="flex lg:hidden items-center justify-between w-full h-8 md:h-10 bg-black divide-x divide-white/20">
       {product.hasVariants ? (
-        <Link href={`/products/${product.slug}`} className="flex-1 h-full">
-          <ActionButton
-            icon={<Package className="w-4 h-4" />}
-            label="View Options"
-            showTooltip={false}
-          />
-        </Link>
-      ) : (
         <ActionButton
-          icon={<ShoppingCart className="w-4 h-4" />}
-          label="Add to Cart"
-          showTooltip={false}
+          icon={<Package className="h-3.5 w-3.5 md:h-5 md:w-5" />}
+          label="View Options"
+          onClick={() => router.push(`/products/${product.slug}`)}
+          className="flex-1 w-full h-full"
         />
+      ) : (
+        <AddToCartButton product={product} className="flex-1 w-full h-full" />
       )}
-      <ActionButton
-        icon={<Heart className="w-4 h-4" />}
-        label="Add to Wishlist"
-        showTooltip={false}
-      />
-      <ActionButton
-        icon={<Repeat className="w-4 h-4" />}
-        label="Add to Compare"
-        showTooltip={false}
-      />
+
+      <WishlistButtonSmall product={product} className="flex-1 w-full h-full" />
+      <QuickBuy product={product} className="flex-1 w-full h-full" />
     </div>
   );
 
@@ -189,7 +172,7 @@ const ActionButton = ({
         <button
           onClick={onClick}
           className={cn(
-            "flex items-center justify-center w-full h-full text-white hover:bg-white/20 transition-colors",
+            "flex items-center justify-center w-full h-full text-white hover:bg-white/20 transition-colors flex-1",
             className
           )}
           aria-label={label}>

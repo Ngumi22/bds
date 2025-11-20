@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { SlidersVertical, XCircle } from "lucide-react"; // Ensure icons are imported
+import { Phone, SlidersVertical, XCircle } from "lucide-react"; // Ensure icons are imported
 import { whatsappIcon } from "@/components/icons";
 import { WhatsappPhoneNumber } from "@/lib/constants";
 import { MinimalProductData } from "@/lib/product/product.types";
@@ -52,14 +52,12 @@ export default function QuickBuy({ product, className }: QuickBuyProps) {
         <TooltipTrigger asChild>
           <button
             onClick={onClick}
-            disabled={disabled}
             aria-label={label}
             className={cn(
               "flex items-center justify-center w-full h-full text-white hover:bg-white/20 transition-colors",
-              buttonClass,
               className
             )}>
-            {icon}
+            {whatsappIcon.icon}
           </button>
         </TooltipTrigger>
         <TooltipContent side="bottom">

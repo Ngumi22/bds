@@ -91,7 +91,7 @@ export async function DesktopNavbar() {
         </div>
       </div>
 
-      <div className="border-b flex items-center justify-between px-4 py-1">
+      <div className="border-b flex items-center justify-between md:px-4 py-1">
         <MegaMenu categories={categories} />
         <div className="md:hidden flex space-x-6">
           <div className="flex items-center space-x-2">

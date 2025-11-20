@@ -1,17 +1,24 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { SlidersVertical } from "lucide-react";
+import { SlidersVertical, XCircle } from "lucide-react"; // Ensure icons are imported
 import { whatsappIcon } from "@/components/icons";
 import { WhatsappPhoneNumber } from "@/lib/constants";
 import { MinimalProductData } from "@/lib/product/product.types";
+import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface QuickBuyProps {
   product: MinimalProductData;
+  className?: string;
 }
 
-export default function QuickBuy({ product }: QuickBuyProps) {
+export default function QuickBuy({ product, className }: QuickBuyProps) {
   const router = useRouter();
 
   const hasRealVariants =
@@ -20,36 +27,45 @@ export default function QuickBuy({ product }: QuickBuyProps) {
 
   const isOutOfStock = product.stockStatus === "OUT_OF_STOCK";
 
-  const handleAddToCart = () => {
-    router.push(`https://wa.me/${WhatsappPhoneNumber}`);
-  };
-
-  if (hasRealVariants) {
-    return (
-      <Button
-        className="text-gray-900 p-1   shadow-md transition ease-in-out delay-400 group-hover:-translate-x-3 hover:scale-110 duration-300"
-        onClick={() => router.push(`/products/${product.slug}`)}>
-        <SlidersVertical size={16} strokeWidth={1} />
-      </Button>
-    );
-  }
+  let icon = whatsappIcon.icon;
+  let label = "Quick Buy";
+  let onClick = () => router.push(`https://wa.me/${WhatsappPhoneNumber}`);
+  let disabled = false;
+  let buttonClass = "";
 
   if (isOutOfStock) {
-    return (
-      <Button
-        variant="secondary"
-        disabled
-        className="w-full flex items-center justify-center gap-2 opacity-70 cursor-not-allowed">
-        Out of Stock
-      </Button>
-    );
+    icon = <XCircle size={20} />;
+    label = "Out of stock";
+    onClick = () => {};
+    disabled = true;
+    buttonClass =
+      "opacity-50 cursor-not-allowed hover:bg-transparent text-red-400";
+  } else if (hasRealVariants) {
+    icon = <SlidersVertical size={20} />;
+    label = "Select options";
+    onClick = () => router.push(`/products/${product.slug}`);
   }
 
   return (
-    <button
-      className="text-gray-900 transition ease-in-out delay-400 group-hover:-translate-x-3 hover:scale-110 duration-300"
-      onClick={handleAddToCart}>
-      {whatsappIcon.icon}
-    </button>
+    <TooltipProvider>
+      <Tooltip delayDuration={100}>
+        <TooltipTrigger asChild>
+          <button
+            onClick={onClick}
+            disabled={disabled}
+            aria-label={label}
+            className={cn(
+              "flex items-center justify-center w-full h-full text-white hover:bg-white/20 transition-colors",
+              buttonClass,
+              className
+            )}>
+            {icon}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p>{label}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

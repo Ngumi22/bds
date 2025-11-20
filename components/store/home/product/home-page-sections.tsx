@@ -60,7 +60,8 @@ export function CategoriesSection({ categories }: { categories: Category[] }) {
 
   return (
     <section className="bg-white">
-      <div className="sm:hidden flex flex-row gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth px-4 md:p-2 scrollbar-hide">
+      {/* Mobile View (Unchanged) */}
+      <div className="sm:hidden flex flex-row gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth px-4 md:p-2 scrollbar-hide py-2">
         {topLevel.map((category) => {
           const Icon =
             categoryIcons[category.slug as keyof typeof categoryIcons] ||
@@ -83,6 +84,7 @@ export function CategoriesSection({ categories }: { categories: Category[] }) {
         })}
       </div>
 
+      {/* Desktop View (Updated Logic) */}
       <div className="hidden sm:block w-full mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {topLevel.map((category) => {
@@ -95,6 +97,7 @@ export function CategoriesSection({ categories }: { categories: Category[] }) {
               <div
                 key={category.id}
                 className="flex flex-row rounded-xs border border-border bg-card py-2 px-3">
+                {/* Image Side */}
                 <div className="flex w-[40%] shrink-0 items-center justify-center pr-2">
                   <div className="relative w-full h-32">
                     {category.image ? (
@@ -113,13 +116,15 @@ export function CategoriesSection({ categories }: { categories: Category[] }) {
                   </div>
                 </div>
 
+                {/* Content Side */}
                 <div className="flex w-[60%] flex-col pl-2">
                   <h2 className="mb-1 text-lg font-semibold text-foreground">
                     {category.name}
                   </h2>
 
                   <nav className="mb-3 flex flex-col gap-1.5">
-                    {subcategories.slice(0, 4).map((sub) => (
+                    {/* 1. Always map the first 3 subcategories */}
+                    {subcategories.slice(0, 3).map((sub) => (
                       <Link
                         key={sub?.id}
                         href={`/category/${sub?.slug}`}
@@ -128,10 +133,24 @@ export function CategoriesSection({ categories }: { categories: Category[] }) {
                       </Link>
                     ))}
 
-                    {subcategories.length > 4 && (
-                      <span className="text-xs text-muted-foreground">
-                        +{subcategories.length - 4} more
-                      </span>
+                    {/* 2. Logic for the 4th item and beyond */}
+                    {subcategories.length > 3 && (
+                      <div className="flex w-full items-center justify-between">
+                        {/* Render the 4th item */}
+                        <Link
+                          key={subcategories[3]?.id}
+                          href={`/category/${subcategories[3]?.slug}`}
+                          className="text-sm text-gray-700 hover:text-gray-500 transition-colors truncate mr-2">
+                          {subcategories[3]?.name}
+                        </Link>
+
+                        {/* Only show "+ More" if there are strictly more than 4 items */}
+                        {subcategories.length > 4 && (
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            +{subcategories.length - 4} more
+                          </span>
+                        )}
+                      </div>
                     )}
                   </nav>
 

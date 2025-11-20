@@ -30,7 +30,6 @@ export interface VariantType {
 
 export interface ProductQuickViewProps extends MinimalProductData {
   originalPrice: number | null;
-  images: string[];
   rating?: number;
   reviewCount?: number;
   brand?: string;
@@ -105,7 +104,7 @@ export function QuickViewDialog({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
             <Image
-              src={product.images[0] || "/placeholder.svg"}
+              src={product.mainImage}
               alt={product.name}
               fill
               className="object-cover"

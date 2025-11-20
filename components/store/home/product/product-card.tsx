@@ -108,13 +108,6 @@ export default function ProductCard({
 
           <QuickBuy product={product} />
         </div>
-        {isFlashSale && activeFlashSale && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2  space-y-0.5 text-[10px] text-gray-600 opacity-100 group-hover:opacity-0 transition-opacity duration-200">
-            {activeFlashSale.endsAt && (
-              <CountdownTimer endsAt={activeFlashSale.endsAt} />
-            )}
-          </div>
-        )}
       </div>
 
       <div className="relative z-10 bg-white flex items-center text-center flex-col gap-2 p-2 sm:transition-all sm:ease-in-out sm:duration-500 sm:group-hover:-translate-y-12">

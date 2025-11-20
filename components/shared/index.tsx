@@ -3,7 +3,7 @@
 import type { MinimalProductData } from "@/lib/product/product.types";
 import Link from "next/link";
 import CarouselClient from "./product-carousel";
-import ProductCard from "../store/home/product/product-card";
+import { ProductCard } from "./product-card";
 
 interface ProductCarouselProps {
   sectionId: string;
@@ -46,7 +46,7 @@ export default function ProductCarousel({
 
         <CarouselClient
           items={products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard isLoaded={true} key={product.id} product={product} />
           ))}
           itemsPerPageMobile={2}
           itemsPerPageTablet={4}

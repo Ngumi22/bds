@@ -24,6 +24,10 @@ import HomeBrandSection, {
 import CollectionsSection from "@/components/store/home/homepage-product-display/collections";
 import { PromoBanner } from "@/components/shared/promo-banner";
 import { ExitIntentPopup } from "@/components/store/product-page/exit-intent-popup";
+import { ProductSection } from "@/components/shared/product-section";
+import CatSection from "@/components/store/home/homepage-product-display/cat.section";
+import BrandSection from "@/components/store/home/homepage-product-display/brand-section";
+import Colle from "@/components/store/home/homepage-product-display/colle";
 
 const FlashSaleClient = lazy(
   () => import("@/components/store/home/promotion-sections/flash-sale")
@@ -100,10 +104,8 @@ export default function HomePageClient({
             <PromotionalSection2 />
           </div>
         </div>
-        <div className="p-2 md:px-8 md:py-4 space-y-4">
+        <div className="md:px-8 md:py-4 space-y-4">
           <CategoriesSection categories={categories} />
-
-          <PromotionalSection />
           {flashSaleData && (
             <FlashSaleClient
               products={flashSaleData.products}
@@ -114,6 +116,24 @@ export default function HomePageClient({
             />
           )}
           {categoriesWithSubs.map((categoryData) => (
+            <CatSection key={categoryData.slug} category={categoryData} />
+          ))}
+
+          {brandsWithProducts && brandsWithProducts.length > 0 && (
+            <BrandSection brandsWithProducts={brandsWithProducts} />
+          )}
+
+          {featuredCollections.map((collection) => (
+            <Colle
+              key={collection.id}
+              title={collection.name}
+              products={collection.products}
+            />
+          ))}
+
+          <PromotionalSection />
+
+          {/* {categoriesWithSubs.map((categoryData) => (
             <CategorySection
               key={categoryData.slug}
               categoriesWithSubs={categoryData}
@@ -151,7 +171,7 @@ export default function HomePageClient({
             ))}
           {collections && collections.length > 0 && (
             <CollectionsSection collections={collections} />
-          )}
+          )} */}
           <PromotionalSection1 />
           <BlogSection blogPosts={blogPosts} />
         </div>

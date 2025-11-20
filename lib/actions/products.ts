@@ -338,7 +338,6 @@ export const getCollectionsWithProducts = unstable_cache(
   }
 );
 
-// This is the new data shape we'll return
 export interface ParentCategoryWithSubCategoriesData {
   name: string;
   slug: string;

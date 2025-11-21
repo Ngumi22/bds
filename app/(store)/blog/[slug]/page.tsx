@@ -10,6 +10,7 @@ import {
   getRelatedPosts,
 } from "@/lib/actions/blog";
 import { BlogCard } from "@/components/store/blog/blog.card";
+import { formatDate } from "@/lib/utils/form-helpers";
 
 export default async function BlogPostPage({
   params,
@@ -51,7 +52,7 @@ export default async function BlogPostPage({
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-4">
                 <div className="flex items-center gap-1">
                   <CalendarDays className="w-4 h-4" />
-                  {post.publishedAt?.toLocaleDateString()}
+                  {formatDate(post.publishedAt)}
                 </div>
 
                 <div className="flex items-center gap-1">

@@ -151,25 +151,7 @@ export default function HomePageClient({
               products={collection.products}
             />
           ))} */}
-          {categoriesWithProducts &&
-            categoriesWithProducts.length > 0 &&
-            categoriesWithProducts.map((category) => (
-              <CategoriesProducts
-                key={category.id}
-                title={category.name}
-                products={category.products}
-                promoBanner={
-                  <PromoBanner
-                    title={`${category.name} Offers!`}
-                    description={`Huge Savings on ${category.name}`}
-                    image={category.image}
-                    buttonText="Explore Deals"
-                    backgroundColor="bg-gray-200"
-                  />
-                }
-                promoBannerPosition="right"
-              />
-            ))}
+
           {/* {collections && collections.length > 0 && (
             <CollectionsSection collections={collections} />
           )} */}

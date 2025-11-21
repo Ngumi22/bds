@@ -28,7 +28,7 @@ export default function QuickBuy({ product, className }: QuickBuyProps) {
   const isOutOfStock = product.stockStatus === "OUT_OF_STOCK";
 
   let icon = whatsappIcon.icon;
-  let label = "Quick Buy";
+  let label = "Buy on whatsapp";
   let onClick = () => router.push(`https://wa.me/${WhatsappPhoneNumber}`);
   let disabled = false;
   let buttonClass = "";

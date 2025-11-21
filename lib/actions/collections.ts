@@ -6,6 +6,8 @@ import {
   CollectionType,
   Collection,
   ProductsOnCollections,
+  Category,
+  Brand,
 } from "@prisma/client";
 import {
   CollectionFormData,
@@ -23,6 +25,7 @@ import {
   mapPrismaProductToMinimal,
   minimalProductSelect,
 } from "../product/product.helpers";
+import { cache } from "react";
 
 export type CollectionWithProduct = Collection & {
   products: MinimalProductData[];
@@ -33,6 +36,30 @@ export interface CollectionWithProducts extends Collection {
     product: MinimalProductData;
   })[];
   productCount: number;
+}
+
+export interface CollectionFilterData {
+  categories: Category[];
+  brands: Brand[];
+  priceRange: { min: number; max: number };
+}
+
+export interface ProductsResponse {
+  products: MinimalProductData[];
+  totalProducts: number;
+  priceRange?: { min: number; max: number };
+}
+
+export interface GetCollectionProductsParams {
+  collection: string;
+  category?: string;
+  brands?: string[];
+  search?: string;
+  sort?: string;
+  perPage?: number;
+  offset?: number;
+  priceMin?: number;
+  priceMax?: number;
 }
 
 export async function createCollection(rawData: CollectionFormData) {
@@ -563,6 +590,255 @@ export const getCollectionsWithProducts = unstable_cache(
   {
     tags: [COLLECTIONS_TAG],
     revalidate: COLLECTIONS_CACHE_TTL.COLLECTION,
+  }
+);
+
+export const getCollectionProducts = unstable_cache(
+  async (params: GetCollectionProductsParams): Promise<ProductsResponse> => {
+    const {
+      collection: collectionSlug,
+      category,
+      brands,
+      search,
+      sort = "createdAt-desc",
+      perPage = 12,
+      offset = 0,
+      priceMin,
+      priceMax,
+    } = params;
+
+    try {
+      const collection = await prisma.collection.findUnique({
+        where: { slug: collectionSlug },
+        include: {
+          products: {
+            select: { productId: true },
+          },
+        },
+      });
+
+      if (!collection) {
+        return {
+          products: [],
+          totalProducts: 0,
+          priceRange: { min: 0, max: 100 },
+        };
+      }
+
+      const productIds = collection.products.map((poc) => poc.productId);
+
+      if (productIds.length === 0) {
+        return {
+          products: [],
+          totalProducts: 0,
+          priceRange: { min: 0, max: 100 },
+        };
+      }
+
+      const where: Prisma.ProductWhereInput = {
+        id: { in: productIds },
+      };
+
+      // *** FIXED: Category filter now includes sub-categories ***
+      if (category) {
+        // Helper function to recursively get all children category IDs
+        const getCategoryWithChildrenIds = async (slug: string) => {
+          const rootCategory = await prisma.category.findUnique({
+            where: { slug },
+            include: {
+              // You can adjust the depth based on your schema nesting
+              children: {
+                include: {
+                  children: true,
+                },
+              },
+            },
+          });
+
+          if (!rootCategory) return [];
+
+          const ids = new Set<string>();
+          const queue: Category[] = [rootCategory];
+
+          // Breadth-first search to collect all descendant IDs
+          while (queue.length > 0) {
+            const current = queue.shift();
+            if (current) {
+              ids.add(current.id);
+              // Prisma typing for relations can be complex, using `as any` for simplicity here
+              (current as any).children?.forEach((child: Category) =>
+                queue.push(child)
+              );
+            }
+          }
+          return Array.from(ids);
+        };
+
+        const categoryIds = await getCategoryWithChildrenIds(category);
+
+        if (categoryIds.length > 0) {
+          where.categoryId = { in: categoryIds };
+        } else {
+          // If category filter is active but no category found, return no products.
+          where.id = { in: [] };
+        }
+      }
+
+      if (brands && brands.length > 0) {
+        const brandRecords = await prisma.brand.findMany({
+          where: { slug: { in: brands } },
+        });
+        if (brandRecords.length > 0) {
+          where.brandId = { in: brandRecords.map((b) => b.id) };
+        }
+      }
+
+      if (priceMin !== undefined || priceMax !== undefined) {
+        where.price = {};
+        if (priceMin !== undefined) where.price.gte = priceMin;
+        if (priceMax !== undefined) where.price.lte = priceMax;
+      }
+
+      if (search) {
+        where.OR = [
+          { name: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } },
+        ];
+      }
+
+      const orderBy: Prisma.ProductOrderByWithRelationInput = {};
+      switch (sort) {
+        case "price-asc":
+          orderBy.price = "asc";
+          break;
+        case "price-desc":
+          orderBy.price = "desc";
+          break;
+        case "name-asc":
+          orderBy.name = "asc";
+          break;
+        case "name-desc":
+          orderBy.name = "desc";
+          break;
+        default:
+          orderBy.createdAt = "desc";
+      }
+
+      const [products, totalProducts, priceStats] = await Promise.all([
+        prisma.product.findMany({
+          where,
+          include: {
+            brand: true,
+            category: true,
+          },
+          orderBy,
+          skip: offset,
+          take: perPage,
+        }),
+        prisma.product.count({ where }),
+        prisma.product.aggregate({
+          where: { id: { in: productIds } }, // Aggregate over all collection products for a stable price range
+          _min: { price: true },
+          _max: { price: true },
+        }),
+      ]);
+
+      const priceRange = {
+        min: priceStats._min.price || 0,
+        max: priceStats._max.price || 100,
+      };
+
+      return {
+        products,
+        totalProducts,
+        priceRange,
+      };
+    } catch (error) {
+      console.error("Error fetching collection products:", error);
+      return {
+        products: [],
+        totalProducts: 0,
+        priceRange: { min: 0, max: 100 },
+      };
+    }
+  },
+  [COLLECTIONS_TAG],
+  {
+    tags: [COLLECTIONS_TAG],
+    revalidate: COLLECTIONS_CACHE_TTL.COLLECTIONS,
+  }
+);
+
+export const getCollectionFilterData = unstable_cache(
+  async (collectionSlug: string): Promise<CollectionFilterData> => {
+    try {
+      const collection = await prisma.collection.findUnique({
+        where: { slug: collectionSlug },
+        include: {
+          products: {
+            include: {
+              product: {
+                include: {
+                  category: true,
+                  brand: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!collection) {
+        return {
+          categories: [],
+          brands: [],
+          priceRange: { min: 0, max: 100 },
+        };
+      }
+
+      const products = collection.products.map((poc) => poc.product);
+
+      // Get unique categories
+      const categoryMap = new Map<string, Category>();
+      products.forEach((product) => {
+        if (product.category) {
+          categoryMap.set(product.category.id, product.category);
+        }
+      });
+
+      // Get unique brands
+      const brandMap = new Map<string, Brand>();
+      products.forEach((product) => {
+        if (product.brand) {
+          brandMap.set(product.brand.id, product.brand);
+        }
+      });
+
+      // Get price range
+      const prices = products
+        .map((p) => p.price)
+        .filter((price) => price !== null);
+      const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+      const maxPrice = prices.length > 0 ? Math.max(...prices) : 100;
+
+      return {
+        categories: Array.from(categoryMap.values()),
+        brands: Array.from(brandMap.values()),
+        priceRange: { min: minPrice, max: maxPrice },
+      };
+    } catch (error) {
+      console.error("Error fetching collection filter data:", error);
+      return {
+        categories: [],
+        brands: [],
+        priceRange: { min: 0, max: 100 },
+      };
+    }
+  },
+  [COLLECTIONS_TAG],
+  {
+    tags: [COLLECTIONS_TAG],
+    revalidate: COLLECTIONS_CACHE_TTL.COLLECTIONS,
   }
 );
 

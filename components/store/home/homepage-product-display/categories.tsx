@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import ProductCard from "../product/product-card";
 import { type MinimalProductData } from "@/lib/product/product.types";
 import { type Tab } from "./producs-tabs";
 import PromoSection from "./promo-section";
+import { ProductCard } from "@/components/shared/product-card";
 
 interface CategoriesProductsProps {
   title: string;
@@ -97,7 +97,7 @@ export default function CategoriesProducts({
       title={title}
       items={filteredProducts}
       renderItem={(product) => (
-        <ProductCard key={product.id} product={product} />
+        <ProductCard key={product.id} product={product} isLoaded={true} />
       )}
       tabs={tabs}
       promoBanner={promoBanner}

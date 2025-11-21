@@ -4,6 +4,7 @@ import * as React from "react";
 import { ProductSection } from "@/components/shared/product-section";
 import { ParentCategoryWithSubCategoriesData } from "@/lib/actions/products";
 import { MinimalProductData } from "@/lib/product/product.types";
+import { PromoBanner } from "@/components/shared/promo-banner";
 
 interface CatSectionProps {
   category: ParentCategoryWithSubCategoriesData;
@@ -38,6 +39,15 @@ export default function CatSection({ category }: CatSectionProps) {
       }}
       products={flattenedTestProducts}
       filterKey={"_subCatSlug" as keyof MinimalProductData}
+      banner={
+        <PromoBanner
+          title={`${category.name} Offers!`}
+          description={`Huge Savings on ${category.name}`}
+          image={category.image}
+          buttonText="Explore Deals"
+          backgroundColor="bg-gray-900"
+        />
+      }
     />
   );
 }

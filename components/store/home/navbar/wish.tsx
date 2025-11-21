@@ -3,6 +3,7 @@
 import { Heart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useWishlistStore } from "@/hooks/use-wishlist-store";
+import Link from "next/link";
 
 export default function WishButton() {
   const items = useWishlistStore((s) => s.items);
@@ -10,7 +11,9 @@ export default function WishButton() {
 
   return (
     <div className="relative hidden sm:flex items-center space-x-2 cursor-pointer">
-      <Heart className="relative" size={30} strokeWidth={1.25} />
+      <Link href={"/wishlist"}>
+        <Heart className="relative" size={30} strokeWidth={1.25} />
+      </Link>
 
       {totalItems > 0 && (
         <Badge className="absolute -top-2 left-4 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs bg-red-500 text-white">

@@ -13,11 +13,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { QuickViewDialog } from "../store/home/product/quick-view-dialog";
 import AddToCartButton from "../store/home/product/add-to-cart";
 import { WishlistButtonSmall } from "../store/home/product/wishlist-button";
 import QuickBuy from "../store/home/product/whatsapp";
 import { useCallback, useState } from "react";
+import { QuickViewDialog } from "./quick-view";
 
 interface ProductCardProps {
   product: MinimalProductData;
@@ -26,6 +26,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product, isLoaded }: ProductCardProps) {
   const router = useRouter();
+
   const isSale =
     product.originalPrice !== null && product.originalPrice > product.price;
   const [showQuickView, setShowQuickView] = useState(false);
@@ -130,7 +131,7 @@ export function ProductCard({ product, isLoaded }: ProductCardProps) {
             {product.name}
           </h3>
 
-          <div className="flex items-baseline gap-2 mt-1">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1">
             {isSale && (
               <span className="text-xs text-gray-400 line-through decoration-gray-400">
                 {product.originalPrice && formatCurrency(product.originalPrice)}
@@ -143,11 +144,13 @@ export function ProductCard({ product, isLoaded }: ProductCardProps) {
         </div>
       </div>
 
-      <QuickViewDialog
-        product={product}
-        open={showQuickView}
-        onOpenChange={handleCloseQuickView}
-      />
+      {showQuickView && (
+        <QuickViewDialog
+          product={product}
+          open={showQuickView}
+          onOpenChange={handleCloseQuickView}
+        />
+      )}
     </>
   );
 }

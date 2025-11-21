@@ -341,6 +341,7 @@ export const getCollectionsWithProducts = unstable_cache(
 export interface ParentCategoryWithSubCategoriesData {
   name: string;
   slug: string;
+  image: string;
   subCategories: {
     name: string;
     slug: string;
@@ -355,6 +356,7 @@ export const getParentCategoriesWithProducts = unstable_cache(
       select: {
         name: true,
         slug: true,
+        image: true,
         children: {
           where: { isActive: true },
           select: {
@@ -382,6 +384,7 @@ export const getParentCategoriesWithProducts = unstable_cache(
       return {
         name: parent.name,
         slug: parent.slug,
+        image: parent.image ?? "",
         subCategories: subCategoriesWithProducts.filter(
           (s) => s.products.length > 0
         ),

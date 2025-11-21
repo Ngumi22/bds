@@ -8,7 +8,7 @@ import {
   Smartphone,
 } from "lucide-react";
 
-export const WhatsappPhoneNumber = +254700100345;
+export const WhatsappPhoneNumber = +254112725364;
 
 export const categoryIcons = {
   laptops: Laptop,

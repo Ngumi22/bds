@@ -4,6 +4,7 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MinimalProductData } from "@/lib/product/product.types";
+import { EmptyCard, ProductCard } from "./product-card";
 import {
   forwardRef,
   Fragment,
@@ -14,7 +15,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { EmptyCard, ProductCard } from "./product-card";
 
 export interface TabConfig {
   id: string;
@@ -52,6 +52,7 @@ export function ProductSectionHeader({
 }: ProductSectionHeaderProps) {
   return (
     <div className="flex items-center justify-between mb-6 gap-4 flex-wrap sm:flex-nowrap">
+      {/* Title Section */}
       <div className="flex items-center gap-2">
         {icon && <span className="text-gray-900">{icon}</span>}
         <h2 className="text-base md:text-lg font-bold text-gray-900 uppercase tracking-wide">
@@ -70,13 +71,13 @@ export function ProductSectionHeader({
                 <button
                   onClick={() => onTabChange?.(tab.id)}
                   className={cn(
-                    "py-1 px-1 md:px-2 transition-colors whitespace-nowrap text-xs md:text-sm",
+                    "py-1 px-1 md:px-2 rounded-xs transition-colors whitespace-nowrap text-xs md:text-sm",
                     activeTab === tab.id
                       ? "bg-gray-900 text-white"
                       : "text-gray-500 hover:text-gray-900"
                   )}
                   aria-label={`Filter by ${tab.label}`}>
-                  {tab.label}
+                  {tab.label.split(" ")[0]}
                 </button>
               </Fragment>
             ))}
@@ -85,12 +86,12 @@ export function ProductSectionHeader({
           <div />
         )}
 
-        <div className="flex items-center justify-end gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={onScrollLeft}
             disabled={!canScrollLeft}
             className={cn(
-              "p-1.5 border border-gray-200 transition-colors rounded-xs",
+              "p-1.5 border border-gray-200 transition-colors rounded-sm",
               canScrollLeft
                 ? "text-gray-900 hover:border-gray-400 hover:bg-gray-50 cursor-pointer"
                 : "text-gray-300 cursor-not-allowed bg-gray-50/50"
@@ -102,7 +103,7 @@ export function ProductSectionHeader({
             onClick={onScrollRight}
             disabled={!canScrollRight}
             className={cn(
-              "p-1.5 border border-gray-200 transition-colors rounded-xs",
+              "p-1.5 border border-gray-200 transition-colors rounded-sm",
               canScrollRight
                 ? "text-gray-900 hover:border-gray-400 hover:bg-gray-50 cursor-pointer"
                 : "text-gray-300 cursor-not-allowed bg-gray-50/50"
@@ -120,10 +121,11 @@ interface ProductGridProps {
   products: MinimalProductData[];
   onScrollChange?: (canScrollLeft: boolean, canScrollRight: boolean) => void;
   scrollTrigger?: number;
+  hasBanner?: boolean;
 }
 
 export const ProductGrid = forwardRef<HTMLDivElement, ProductGridProps>(
-  ({ products, onScrollChange, scrollTrigger }, ref) => {
+  ({ products, onScrollChange, scrollTrigger, hasBanner = false }, ref) => {
     const [loadedProducts, setLoadedProducts] = useState<Set<string>>(
       new Set()
     );
@@ -211,11 +213,15 @@ export const ProductGrid = forwardRef<HTMLDivElement, ProductGridProps>(
       setLoadedProducts(new Set());
     }, [scrollTrigger]);
 
+    const desktopClass = hasBanner
+      ? "lg:w-[calc(25%-18px)]"
+      : "lg:w-[calc(20%-19.2px)]";
+
     return (
       <>
         <div
           ref={containerRef}
-          className="flex gap-2 md:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
+          className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
@@ -225,7 +231,12 @@ export const ProductGrid = forwardRef<HTMLDivElement, ProductGridProps>(
                 <div
                   key={product.id}
                   data-product-id={product.id}
-                  className="product-card-wrapper shrink-0 w-[calc(50%-8px)] sm:w-[calc(33.333%-16px)] lg:w-[calc(20%-19.2px)]"
+                  className={cn(
+                    "product-card-wrapper shrink-0",
+                    "w-[calc(50%-8px)]",
+                    "sm:w-[calc(33.333%-16px)]",
+                    desktopClass
+                  )}
                   style={{
                     animation: loadedProducts.has(product.id)
                       ? `slideIn 0.4s ease-out ${index * 0.05}s both`
@@ -240,7 +251,12 @@ export const ProductGrid = forwardRef<HTMLDivElement, ProductGridProps>(
             : [...Array(5)].map((_, i) => (
                 <div
                   key={`empty-${i}`}
-                  className="shrink-0 w-[calc(50%-8px)] sm:w-[calc(33.333%-16px)] lg:w-[calc(20%-19.2px)]">
+                  className={cn(
+                    "shrink-0",
+                    "w-[calc(50%-8px)]",
+                    "sm:w-[calc(33.333%-16px)]",
+                    desktopClass
+                  )}>
                   <EmptyCard />
                 </div>
               ))}
@@ -249,6 +265,13 @@ export const ProductGrid = forwardRef<HTMLDivElement, ProductGridProps>(
         <style jsx>{`
           .scrollbar-hide::-webkit-scrollbar {
             display: none;
+          }
+          .no-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+          .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
           }
 
           @keyframes slideIn {
@@ -273,12 +296,14 @@ interface ProductSectionProps {
   config: ProductSectionConfig;
   products: MinimalProductData[];
   filterKey?: keyof MinimalProductData | (string & {});
+  banner?: React.ReactNode;
 }
 
 export function ProductSection({
   config,
   products,
   filterKey,
+  banner,
 }: ProductSectionProps) {
   const [activeTab, setActiveTab] = useState<string>(
     config.tabs?.[0]?.id || ""
@@ -344,12 +369,21 @@ export function ProductSection({
         icon={config.icon}
       />
 
-      <ProductGrid
-        ref={gridRef}
-        products={filteredProducts}
-        onScrollChange={handleScrollChange}
-        scrollTrigger={scrollTrigger}
-      />
+      <div className="flex gap-0 lg:gap-6">
+        {banner && (
+          <div className="hidden lg:block shrink-0 w-[25%] mb-4">{banner}</div>
+        )}
+
+        <div className="flex-1 min-w-0">
+          <ProductGrid
+            ref={gridRef}
+            products={filteredProducts}
+            onScrollChange={handleScrollChange}
+            scrollTrigger={scrollTrigger}
+            hasBanner={!!banner}
+          />
+        </div>
+      </div>
     </section>
   );
 }

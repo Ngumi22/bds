@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Star,
   Minus,
@@ -22,6 +23,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils/form-helpers";
+import AddToCartButton from "../home/product/add-to-cart";
+import { MinimalProductData } from "@/lib/product/product.types";
+import { CartAddOn, useCartStore } from "@/hooks/use-cart-store";
+
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
 
 interface VariantOption {
   id: string;
@@ -39,6 +47,8 @@ export interface VariantType {
 
 interface ProductDetailsProps {
   product: {
+    id: string;
+    slug: string;
     name: string;
     price: number;
     originalPrice?: number;
@@ -58,16 +68,48 @@ interface ProductDetailsProps {
     offerEndsIn?: number;
     variantTypes?: VariantType[];
     features?: Array<{ icon: string; title: string; description: string }>;
+    images?: string[]; // Added to support mainImage fallback
   };
   onVariantChange?: (variants: Record<string, string>) => void;
 }
+
+// -----------------------------------------------------------------------------
+// Constants (Add-On Definitions)
+// -----------------------------------------------------------------------------
+
+const PROTECTION_PLAN_DATA: CartAddOn = {
+  key: "protection-2yr",
+  name: "2-Year Protection Plan",
+  price: 2000,
+  description: "Covers accidental damage and extends warranty",
+};
+
+const GIFT_WRAP_DATA: CartAddOn = {
+  key: "gift-wrap",
+  name: "Gift Wrap",
+  price: 500,
+  description: "Premium gift wrapping with personalized message",
+};
+
+// -----------------------------------------------------------------------------
+// Component
+// -----------------------------------------------------------------------------
 
 export function ProductDetails({
   product,
   onVariantChange,
 }: ProductDetailsProps) {
+  const router = useRouter();
+  const addProductToCart = useCartStore((s) => s.addProductToCart);
+
+  // State
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [protectionPlan, setProtectionPlan] = useState(false);
+  const [giftWrap, setGiftWrap] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(product.offerEndsIn || 0);
+
+  // Initialize variants with first in-stock option
   const [selectedVariants, setSelectedVariants] = useState<
     Record<string, string>
   >(() => {
@@ -80,66 +122,59 @@ export function ProductDetails({
     });
     return initial;
   });
-  const [timeLeft, setTimeLeft] = useState(product.offerEndsIn || 0);
-  const [protectionPlan, setProtectionPlan] = useState(false);
-  const [giftWrap, setGiftWrap] = useState(false);
 
-  const discount = product.originalPrice
-    ? ((product.price / product.originalPrice) * 100).toFixed(0)
-    : "0";
-
+  // Timer Logic
   useEffect(() => {
     if (timeLeft <= 0) return;
-
     const timer = setInterval(() => {
       setTimeLeft((prev) => Math.max(0, prev - 1));
     }, 1000);
-
     return () => clearInterval(timer);
   }, [timeLeft]);
 
+  // Notify parent of variant changes
   useEffect(() => {
     if (onVariantChange) {
       onVariantChange(selectedVariants);
     }
   }, [selectedVariants, onVariantChange]);
 
-  const calculateFinalPrice = () => {
-    let finalPrice = product.price;
+  // ---------------------------------------------------------------------------
+  // Computed Logic
+  // ---------------------------------------------------------------------------
+
+  // Calculate base price including variant modifiers
+  const variantAdjustedPrice = useMemo(() => {
+    let price = product.price;
     product.variantTypes?.forEach((type) => {
       const selectedOption = type.options.find(
         (opt) => opt.id === selectedVariants[type.name]
       );
       if (selectedOption) {
-        finalPrice += selectedOption.priceModifier;
+        price += selectedOption.priceModifier;
       }
     });
-    return finalPrice;
-  };
+    return price;
+  }, [product.price, product.variantTypes, selectedVariants]);
 
-  const calculateTotalPrice = () => {
-    let total = calculateFinalPrice() * quantity;
-    if (protectionPlan) total += 49.99;
-    if (giftWrap) total += 5.99;
-    return total;
-  };
+  // Construct the active AddOns array based on checkbox state
+  const activeAddOns = useMemo(() => {
+    const addons: CartAddOn[] = [];
+    if (protectionPlan) addons.push(PROTECTION_PLAN_DATA);
+    if (giftWrap) addons.push(GIFT_WRAP_DATA);
+    return addons;
+  }, [protectionPlan, giftWrap]);
 
-  const finalPrice = calculateFinalPrice();
-  const totalPrice = calculateTotalPrice();
+  // Calculate total display price (Variant Price * Quantity + AddOns)
+  // Note: AddOns are usually "per unit" or "flat".
+  // Assuming AddOns are per unit here to match Cart Store logic.
+  const totalDisplayPrice = useMemo(() => {
+    const addOnTotal = activeAddOns.reduce((sum, a) => sum + a.price, 0);
+    return (variantAdjustedPrice + addOnTotal) * quantity;
+  }, [variantAdjustedPrice, activeAddOns, quantity]);
 
-  const topSpecs = Object.entries(product.specifications).slice(0, 5);
-
-  const formatTime = (seconds: number) => {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return { days, hours, mins, secs };
-  };
-
-  const time = formatTime(timeLeft);
-
-  const getCurrentStock = () => {
+  // Determine Stock Status
+  const currentStock = useMemo(() => {
     if (!product.variantTypes || product.variantTypes.length === 0) {
       return { inStock: product.inStock, stockCount: product.stockCount };
     }
@@ -163,28 +198,72 @@ export function ProductDetails({
       stockCount:
         minStock === Number.POSITIVE_INFINITY ? product.stockCount : minStock,
     };
+  }, [
+    product.variantTypes,
+    product.inStock,
+    product.stockCount,
+    selectedVariants,
+  ]);
+
+  // Prepare Product Data for Cart
+  // CRITICAL: We pass 'variantAdjustedPrice' as the price, so the cart
+  // knows the cost of the specific variant chosen.
+  const minimalProduct: MinimalProductData = {
+    id: product.id,
+    name: product.name,
+    price: variantAdjustedPrice,
+    slug: product.slug,
+    stockStatus: currentStock.inStock ? "IN_STOCK" : "OUT_OF_STOCK",
+    hasVariants: !!product.variantTypes && product.variantTypes.length > 0,
+    originalPrice: product.originalPrice ?? product.price,
+    categoryId: product.category ?? "",
+    isActive: true,
+    mainImage: product.images?.[0] || "", // Try to get first image or fallback
   };
 
-  const currentStock = getCurrentStock();
+  // ---------------------------------------------------------------------------
+  // Handlers
+  // ---------------------------------------------------------------------------
 
-  const handleAddToCart = () => {
-    const cartItem = {
-      productId: product.sku,
-      productName: product.name,
-      basePrice: product.price,
-      selectedVariants: selectedVariants,
-      variantPrice: finalPrice,
-      quantity: quantity,
-      protectionPlan: protectionPlan,
-      giftWrap: giftWrap,
-      totalPrice: totalPrice,
-    };
-    console.log("Adding to cart:", cartItem);
+  const handleBuyNow = () => {
+    const result = addProductToCart(
+      minimalProduct,
+      quantity,
+      selectedVariants,
+      activeAddOns
+    );
+
+    if (result.success) {
+      router.push("/checkout");
+    }
   };
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
+  const discount = product.originalPrice
+    ? ((product.price / product.originalPrice) * 100).toFixed(0)
+    : "0";
+
+  const formatTime = (seconds: number) => {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return { days, hours, mins, secs };
+  };
+
+  const time = formatTime(timeLeft);
+  const topSpecs = Object.entries(product.specifications).slice(0, 5);
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
 
   return (
     <div className="flex w-full flex-col">
-      {/* Brand & Category */}
+      {/* Breadcrumb / Brand */}
       {(product.brand || product.category) && (
         <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           {product.brand && <span>{product.brand}</span>}
@@ -197,6 +276,7 @@ export function ProductDetails({
         {product.name}
       </h1>
 
+      {/* Ratings */}
       {product.rating && product.reviewCount && (
         <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-1">
@@ -218,6 +298,7 @@ export function ProductDetails({
         </div>
       )}
 
+      {/* Viewing Now */}
       {product.viewingNow && (
         <div className="mb-3 flex items-center gap-2 text-xs text-foreground">
           <Eye className="h-3.5 w-3.5 shrink-0" />
@@ -233,9 +314,10 @@ export function ProductDetails({
         </p>
       )}
 
+      {/* Price Display */}
       <div className="mb-4 flex flex-wrap items-baseline gap-2 sm:gap-3">
         <span className="text-2xl font-semibold text-foreground sm:text-3xl">
-          {formatCurrency(finalPrice)}
+          {formatCurrency(variantAdjustedPrice)}
         </span>
         {product.originalPrice && (
           <>
@@ -249,6 +331,7 @@ export function ProductDetails({
         )}
       </div>
 
+      {/* Flash Sale Timer */}
       {product.collection === "flash sale" && timeLeft > 0 && (
         <div className="mb-4 border border-foreground bg-card p-3">
           <div className="mb-2 flex items-center gap-2 text-xs font-medium text-foreground">
@@ -277,6 +360,7 @@ export function ProductDetails({
         </div>
       )}
 
+      {/* Variant Selectors */}
       {product.variantTypes && product.variantTypes.length > 0 && (
         <div className="mb-4 space-y-4">
           {product.variantTypes.map((variantType) => {
@@ -297,6 +381,28 @@ export function ProductDetails({
                   {variantType.options.map((option) => {
                     const isSelected =
                       selectedVariants[variantType.name] === option.id;
+
+                    const ButtonContent = (
+                      <>
+                        <span className="whitespace-nowrap">
+                          {option.name}
+                          {option.priceModifier > 0 && (
+                            <span className="ml-1">
+                              +{formatCurrency(option.priceModifier)}
+                            </span>
+                          )}
+                        </span>
+                      </>
+                    );
+
+                    const commonClasses = `relative transition-all ${
+                      isSelected ? "border-foreground" : "border-border"
+                    } ${
+                      !option.inStock
+                        ? "cursor-not-allowed opacity-40"
+                        : "hover:border-muted-foreground"
+                    }`;
+
                     if (option.color) {
                       return (
                         <button
@@ -308,19 +414,18 @@ export function ProductDetails({
                             }))
                           }
                           disabled={!option.inStock}
-                          className={`relative h-9 w-9 shrink-0 border-2 transition-all sm:h-10 sm:w-10 ${
-                            isSelected ? "border-foreground" : "border-border"
-                          } ${
-                            !option.inStock
-                              ? "cursor-not-allowed opacity-40"
-                              : "hover:border-muted-foreground"
-                          }`}
+                          className={`${commonClasses} h-9 w-9 shrink-0 border-2 sm:h-10 sm:w-10`}
                           style={{ backgroundColor: option.color }}
                           title={`${option.name}${
                             option.priceModifier > 0
-                              ? ` +$${option.priceModifier.toFixed(2)}`
+                              ? ` +${formatCurrency(option.priceModifier)}`
                               : ""
                           }`}>
+                          {isSelected && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="h-2 w-2 rounded-full bg-white ring-1 ring-black/20" />
+                            </div>
+                          )}
                           {!option.inStock && (
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="h-px w-full rotate-45 bg-foreground" />
@@ -339,23 +444,12 @@ export function ProductDetails({
                             }))
                           }
                           disabled={!option.inStock}
-                          className={`border px-3 py-1.5 text-xs font-medium transition-all sm:px-4 sm:py-2 ${
+                          className={`${commonClasses} border px-3 py-1.5 text-xs font-medium sm:px-4 sm:py-2 ${
                             isSelected
-                              ? "border-foreground bg-foreground text-background"
-                              : "border-border bg-background text-foreground hover:border-muted-foreground"
-                          } ${
-                            !option.inStock
-                              ? "cursor-not-allowed opacity-40 line-through"
-                              : ""
-                          }`}>
-                          <span className="whitespace-nowrap">
-                            {option.name}
-                            {option.priceModifier > 0 && (
-                              <span className="ml-1">
-                                +{formatCurrency(option.priceModifier)}
-                              </span>
-                            )}
-                          </span>
+                              ? "bg-foreground text-background"
+                              : "bg-background text-foreground"
+                          } ${!option.inStock ? "line-through" : ""}`}>
+                          {ButtonContent}
                         </button>
                       );
                     }
@@ -367,6 +461,7 @@ export function ProductDetails({
         </div>
       )}
 
+      {/* Stock Status */}
       <div className="mb-6 flex flex-wrap items-center gap-2 sm:gap-4">
         {currentStock.inStock ? (
           <>
@@ -391,6 +486,7 @@ export function ProductDetails({
         </span>
       </div>
 
+      {/* Shipping Info */}
       {(product.deliveryDate || product.shipsIn) && (
         <div className="mb-6 space-y-2 border border-border bg-card p-3">
           {product.deliveryDate && (
@@ -414,6 +510,7 @@ export function ProductDetails({
         </div>
       )}
 
+      {/* Key Features */}
       {product.features && product.features.length > 0 && (
         <div className="mb-6 border-y border-border py-4">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-foreground">
@@ -440,6 +537,7 @@ export function ProductDetails({
         </div>
       )}
 
+      {/* Specs Preview */}
       {product.specifications &&
         Object.keys(product.specifications).length > 0 && (
           <div className="mb-6 border-b border-border pb-4">
@@ -457,6 +555,7 @@ export function ProductDetails({
           </div>
         )}
 
+      {/* Quantity Selector */}
       <div className="mb-4">
         <label className="mb-2 block text-xs font-medium text-foreground">
           Quantity
@@ -487,8 +586,9 @@ export function ProductDetails({
         </div>
       </div>
 
+      {/* Add-Ons (Protection / Gift Wrap) */}
       <div className="mb-6 space-y-2 border border-border bg-card p-3">
-        <label className="flex items-start gap-2 text-xs">
+        <label className="flex items-start gap-2 text-xs cursor-pointer select-none">
           <input
             type="checkbox"
             className="mt-0.5"
@@ -497,15 +597,17 @@ export function ProductDetails({
           />
           <div>
             <span className="font-medium text-foreground">
-              Add 2-Year Protection Plan
+              {PROTECTION_PLAN_DATA.name}
             </span>
-            <span className="ml-2 text-muted-foreground">+Ksh 2000</span>
+            <span className="ml-2 text-muted-foreground">
+              +{formatCurrency(PROTECTION_PLAN_DATA.price)}
+            </span>
             <p className="mt-0.5 text-muted-foreground">
-              Covers accidental damage and extends warranty
+              {PROTECTION_PLAN_DATA.description}
             </p>
           </div>
         </label>
-        <label className="flex items-start gap-2 text-xs">
+        <label className="flex items-start gap-2 text-xs cursor-pointer select-none">
           <input
             type="checkbox"
             className="mt-0.5"
@@ -513,15 +615,20 @@ export function ProductDetails({
             onChange={(e) => setGiftWrap(e.target.checked)}
           />
           <div>
-            <span className="font-medium text-foreground">Gift Wrap</span>
-            <span className="ml-2 text-muted-foreground">+ Ksh 500</span>
+            <span className="font-medium text-foreground">
+              {GIFT_WRAP_DATA.name}
+            </span>
+            <span className="ml-2 text-muted-foreground">
+              +{formatCurrency(GIFT_WRAP_DATA.price)}
+            </span>
             <p className="mt-0.5 text-muted-foreground">
-              Premium gift wrapping with personalized message
+              {GIFT_WRAP_DATA.description}
             </p>
           </div>
         </label>
       </div>
 
+      {/* Live Price Summary */}
       {(protectionPlan || giftWrap || quantity > 1) && (
         <div className="mb-4 border border-border bg-card p-3">
           <div className="space-y-1 text-xs">
@@ -530,39 +637,56 @@ export function ProductDetails({
                 Item price ({quantity}x)
               </span>
               <span className="text-foreground">
-                {formatCurrency(finalPrice * quantity)}
+                {formatCurrency(variantAdjustedPrice * quantity)}
               </span>
             </div>
             {protectionPlan && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Protection Plan</span>
-                <span className="text-foreground">+ Ksh 2000</span>
+                <span className="text-muted-foreground">
+                  {PROTECTION_PLAN_DATA.name} ({quantity}x)
+                </span>
+                <span className="text-foreground">
+                  +{formatCurrency(PROTECTION_PLAN_DATA.price * quantity)}
+                </span>
               </div>
             )}
             {giftWrap && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Gift Wrap</span>
-                <span className="text-foreground">Ksh 500</span>
+                <span className="text-muted-foreground">
+                  {GIFT_WRAP_DATA.name} ({quantity}x)
+                </span>
+                <span className="text-foreground">
+                  +{formatCurrency(GIFT_WRAP_DATA.price * quantity)}
+                </span>
               </div>
             )}
             <div className="flex justify-between border-t border-border pt-1 font-semibold">
               <span className="text-foreground">Total</span>
               <span className="text-foreground">
-                {formatCurrency(totalPrice)}
+                {formatCurrency(totalDisplayPrice)}
               </span>
             </div>
           </div>
         </div>
       )}
 
+      {/* Action Buttons */}
       <div className="mb-4 flex gap-2 sm:mb-6 sm:gap-3">
-        <Button
-          className="flex-1 text-xs font-medium sm:text-sm"
-          size="lg"
+        <AddToCartButton
+          mode="default"
+          product={minimalProduct}
+          quantity={quantity}
+          price={variantAdjustedPrice}
+          selectedVariants={selectedVariants}
+          // Pass Add-Ons here so the button can send them to store
+          // Note: You may need to update AddToCartButton to accept this prop
+          // @ts-ignore - Assuming AddToCartButton will be updated to accept addOns
+          addOns={activeAddOns}
           disabled={!currentStock.inStock}
-          onClick={handleAddToCart}>
-          Add to Cart
-        </Button>
+          isOutOfStock={!currentStock.inStock}
+          className="flex-1 text-xs font-medium sm:text-sm"
+        />
+
         <Button
           size="lg"
           variant="outline"
@@ -582,11 +706,13 @@ export function ProductDetails({
       <Button
         variant="outline"
         className="mb-4 w-full bg-transparent text-xs font-medium sm:mb-6 sm:text-sm"
-        size="lg">
+        size="lg"
+        onClick={handleBuyNow}
+        disabled={!currentStock.inStock}>
         Buy Now
       </Button>
 
-      {/* Features */}
+      {/* Value Props / Footer */}
       <div className="space-y-3 border-t border-border pt-6">
         <div className="flex items-start gap-3">
           <Truck className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />

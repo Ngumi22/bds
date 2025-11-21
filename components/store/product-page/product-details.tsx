@@ -27,10 +27,6 @@ import AddToCartButton from "../home/product/add-to-cart";
 import { MinimalProductData } from "@/lib/product/product.types";
 import { CartAddOn, useCartStore } from "@/hooks/use-cart-store";
 
-// -----------------------------------------------------------------------------
-// Types
-// -----------------------------------------------------------------------------
-
 interface VariantOption {
   id: string;
   name: string;
@@ -68,14 +64,10 @@ interface ProductDetailsProps {
     offerEndsIn?: number;
     variantTypes?: VariantType[];
     features?: Array<{ icon: string; title: string; description: string }>;
-    images?: string[]; // Added to support mainImage fallback
+    images?: string[];
   };
   onVariantChange?: (variants: Record<string, string>) => void;
 }
-
-// -----------------------------------------------------------------------------
-// Constants (Add-On Definitions)
-// -----------------------------------------------------------------------------
 
 const PROTECTION_PLAN_DATA: CartAddOn = {
   key: "protection-2yr",
@@ -91,10 +83,6 @@ const GIFT_WRAP_DATA: CartAddOn = {
   description: "Premium gift wrapping with personalized message",
 };
 
-// -----------------------------------------------------------------------------
-// Component
-// -----------------------------------------------------------------------------
-
 export function ProductDetails({
   product,
   onVariantChange,
@@ -102,14 +90,12 @@ export function ProductDetails({
   const router = useRouter();
   const addProductToCart = useCartStore((s) => s.addProductToCart);
 
-  // State
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
   const [protectionPlan, setProtectionPlan] = useState(false);
   const [giftWrap, setGiftWrap] = useState(false);
   const [timeLeft, setTimeLeft] = useState(product.offerEndsIn || 0);
 
-  // Initialize variants with first in-stock option
   const [selectedVariants, setSelectedVariants] = useState<
     Record<string, string>
   >(() => {
@@ -123,7 +109,6 @@ export function ProductDetails({
     return initial;
   });
 
-  // Timer Logic
   useEffect(() => {
     if (timeLeft <= 0) return;
     const timer = setInterval(() => {
@@ -132,18 +117,12 @@ export function ProductDetails({
     return () => clearInterval(timer);
   }, [timeLeft]);
 
-  // Notify parent of variant changes
   useEffect(() => {
     if (onVariantChange) {
       onVariantChange(selectedVariants);
     }
   }, [selectedVariants, onVariantChange]);
 
-  // ---------------------------------------------------------------------------
-  // Computed Logic
-  // ---------------------------------------------------------------------------
-
-  // Calculate base price including variant modifiers
   const variantAdjustedPrice = useMemo(() => {
     let price = product.price;
     product.variantTypes?.forEach((type) => {
@@ -157,7 +136,6 @@ export function ProductDetails({
     return price;
   }, [product.price, product.variantTypes, selectedVariants]);
 
-  // Construct the active AddOns array based on checkbox state
   const activeAddOns = useMemo(() => {
     const addons: CartAddOn[] = [];
     if (protectionPlan) addons.push(PROTECTION_PLAN_DATA);
@@ -165,15 +143,11 @@ export function ProductDetails({
     return addons;
   }, [protectionPlan, giftWrap]);
 
-  // Calculate total display price (Variant Price * Quantity + AddOns)
-  // Note: AddOns are usually "per unit" or "flat".
-  // Assuming AddOns are per unit here to match Cart Store logic.
   const totalDisplayPrice = useMemo(() => {
     const addOnTotal = activeAddOns.reduce((sum, a) => sum + a.price, 0);
     return (variantAdjustedPrice + addOnTotal) * quantity;
   }, [variantAdjustedPrice, activeAddOns, quantity]);
 
-  // Determine Stock Status
   const currentStock = useMemo(() => {
     if (!product.variantTypes || product.variantTypes.length === 0) {
       return { inStock: product.inStock, stockCount: product.stockCount };
@@ -205,9 +179,6 @@ export function ProductDetails({
     selectedVariants,
   ]);
 
-  // Prepare Product Data for Cart
-  // CRITICAL: We pass 'variantAdjustedPrice' as the price, so the cart
-  // knows the cost of the specific variant chosen.
   const minimalProduct: MinimalProductData = {
     id: product.id,
     name: product.name,
@@ -218,12 +189,8 @@ export function ProductDetails({
     originalPrice: product.originalPrice ?? product.price,
     categoryId: product.category ?? "",
     isActive: true,
-    mainImage: product.images?.[0] || "", // Try to get first image or fallback
+    mainImage: product.images?.[0] || "",
   };
-
-  // ---------------------------------------------------------------------------
-  // Handlers
-  // ---------------------------------------------------------------------------
 
   const handleBuyNow = () => {
     const result = addProductToCart(
@@ -237,10 +204,6 @@ export function ProductDetails({
       router.push("/checkout");
     }
   };
-
-  // ---------------------------------------------------------------------------
-  // Helpers
-  // ---------------------------------------------------------------------------
 
   const discount = product.originalPrice
     ? ((product.price / product.originalPrice) * 100).toFixed(0)
@@ -257,13 +220,8 @@ export function ProductDetails({
   const time = formatTime(timeLeft);
   const topSpecs = Object.entries(product.specifications).slice(0, 5);
 
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
-
   return (
     <div className="flex w-full flex-col">
-      {/* Breadcrumb / Brand */}
       {(product.brand || product.category) && (
         <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           {product.brand && <span>{product.brand}</span>}
@@ -276,7 +234,6 @@ export function ProductDetails({
         {product.name}
       </h1>
 
-      {/* Ratings */}
       {product.rating && product.reviewCount && (
         <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-1">
@@ -298,7 +255,6 @@ export function ProductDetails({
         </div>
       )}
 
-      {/* Viewing Now */}
       {product.viewingNow && (
         <div className="mb-3 flex items-center gap-2 text-xs text-foreground">
           <Eye className="h-3.5 w-3.5 shrink-0" />
@@ -314,7 +270,6 @@ export function ProductDetails({
         </p>
       )}
 
-      {/* Price Display */}
       <div className="mb-4 flex flex-wrap items-baseline gap-2 sm:gap-3">
         <span className="text-2xl font-semibold text-foreground sm:text-3xl">
           {formatCurrency(variantAdjustedPrice)}
@@ -331,8 +286,7 @@ export function ProductDetails({
         )}
       </div>
 
-      {/* Flash Sale Timer */}
-      {product.collection === "flash sale" && timeLeft > 0 && (
+      {product.collection === "flash-sale" && timeLeft > 0 && (
         <div className="mb-4 border border-foreground bg-card p-3">
           <div className="mb-2 flex items-center gap-2 text-xs font-medium text-foreground">
             <Clock className="h-3.5 w-3.5 shrink-0" />
@@ -360,7 +314,6 @@ export function ProductDetails({
         </div>
       )}
 
-      {/* Variant Selectors */}
       {product.variantTypes && product.variantTypes.length > 0 && (
         <div className="mb-4 space-y-4">
           {product.variantTypes.map((variantType) => {
@@ -461,7 +414,6 @@ export function ProductDetails({
         </div>
       )}
 
-      {/* Stock Status */}
       <div className="mb-6 flex flex-wrap items-center gap-2 sm:gap-4">
         {currentStock.inStock ? (
           <>
@@ -486,7 +438,6 @@ export function ProductDetails({
         </span>
       </div>
 
-      {/* Shipping Info */}
       {(product.deliveryDate || product.shipsIn) && (
         <div className="mb-6 space-y-2 border border-border bg-card p-3">
           {product.deliveryDate && (
@@ -510,7 +461,6 @@ export function ProductDetails({
         </div>
       )}
 
-      {/* Key Features */}
       {product.features && product.features.length > 0 && (
         <div className="mb-6 border-y border-border py-4">
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-foreground">
@@ -537,7 +487,6 @@ export function ProductDetails({
         </div>
       )}
 
-      {/* Specs Preview */}
       {product.specifications &&
         Object.keys(product.specifications).length > 0 && (
           <div className="mb-6 border-b border-border pb-4">
@@ -555,7 +504,6 @@ export function ProductDetails({
           </div>
         )}
 
-      {/* Quantity Selector */}
       <div className="mb-4">
         <label className="mb-2 block text-xs font-medium text-foreground">
           Quantity
@@ -586,7 +534,6 @@ export function ProductDetails({
         </div>
       </div>
 
-      {/* Add-Ons (Protection / Gift Wrap) */}
       <div className="mb-6 space-y-2 border border-border bg-card p-3">
         <label className="flex items-start gap-2 text-xs cursor-pointer select-none">
           <input
@@ -628,7 +575,6 @@ export function ProductDetails({
         </label>
       </div>
 
-      {/* Live Price Summary */}
       {(protectionPlan || giftWrap || quantity > 1) && (
         <div className="mb-4 border border-border bg-card p-3">
           <div className="space-y-1 text-xs">
@@ -670,7 +616,6 @@ export function ProductDetails({
         </div>
       )}
 
-      {/* Action Buttons */}
       <div className="mb-4 flex gap-2 sm:mb-6 sm:gap-3">
         <AddToCartButton
           mode="default"
@@ -678,8 +623,6 @@ export function ProductDetails({
           quantity={quantity}
           price={variantAdjustedPrice}
           selectedVariants={selectedVariants}
-          // Pass Add-Ons here so the button can send them to store
-          // Note: You may need to update AddToCartButton to accept this prop
           // @ts-ignore - Assuming AddToCartButton will be updated to accept addOns
           addOns={activeAddOns}
           disabled={!currentStock.inStock}
@@ -712,7 +655,6 @@ export function ProductDetails({
         Buy Now
       </Button>
 
-      {/* Value Props / Footer */}
       <div className="space-y-3 border-t border-border pt-6">
         <div className="flex items-start gap-3">
           <Truck className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />

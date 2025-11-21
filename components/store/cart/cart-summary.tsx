@@ -91,7 +91,6 @@ export function CartSummary() {
           </Button>
         </div>
 
-        {/* WhatsApp Order Button (Alternative Checkout) */}
         <WhatsAppOrderButton
           mode="cart"
           cartItems={items}
@@ -100,7 +99,6 @@ export function CartSummary() {
           className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xs shadow-md hover:shadow-lg transition duration-200"
         />
 
-        {/* Traditional Checkout Link */}
         <Link href={items.length > 0 ? "/checkout" : "#"} passHref>
           <Button
             className="w-full bg-black text-white hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 rounded-xs"

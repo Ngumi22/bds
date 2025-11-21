@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { CartItemSkeleton, EmptyCartIllustration } from "./cart-items-skeleton";
-import { useCartStore } from "@/hooks/use-cart-store"; // Ensure this path is correct
-import { formatCurrency } from "@/lib/utils/form-helpers"; // Ensure this path is correct
+import { useCartStore } from "@/hooks/use-cart-store";
+import { formatCurrency } from "@/lib/utils/form-helpers";
 
 export function CartItems() {
   const hasHydrated = useCartStore((s) => s.hasHydrated);
@@ -109,7 +109,6 @@ export function CartItems() {
               <Card key={item.key} className="group rounded-sm">
                 <CardContent className="p-3">
                   <div className="flex flex-col sm:flex-row gap-4">
-                    {/* Image and Quantity Badge */}
                     <div className="relative shrink-0">
                       <div className="w-24 h-24 sm:w-20 sm:h-20 relative rounded-sm overflow-hidden bg-black-100 dark:bg-black-800">
                         <Image
@@ -126,14 +125,12 @@ export function CartItems() {
                         </Badge>
                       )}
                     </div>
-                    {/* Item Details */}
                     <div className="flex-1 min-w-0 space-y-2">
                       <div>
                         <h3 className="font-semibold text-black dark:text-black-50 leading-tight">
                           {item.name}
                         </h3>
 
-                        {/* ✅ Show variant info if available */}
                         {item.variants &&
                           Object.keys(item.variants).length > 0 && (
                             <div className="flex flex-wrap gap-2 mt-2">
@@ -150,14 +147,12 @@ export function CartItems() {
                             </div>
                           )}
 
-                        {/* ✅ Show Add-On info if available */}
                         {item.addOns && item.addOns.length > 0 && (
                           <div className="mt-3 space-y-1 text-sm text-black-600 dark:text-black-400 border-l-2 border-blue-400 pl-3 pt-1">
                             {item.addOns.map((addOn) => (
                               <div
                                 key={addOn.key}
                                 className="flex items-center gap-2">
-                                {/* Choose icon based on add-on type (simple heuristic) */}
                                 {addOn.key.includes("protection") && (
                                   <ShieldCheck className="w-4 h-4 text-green-600" />
                                 )}
@@ -181,17 +176,14 @@ export function CartItems() {
                         )}
                       </div>
 
-                      {/* Pricing and Quantity Controls */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
                           <p className="font-bold text-black">
-                            {/* Display finalPrice (base + add-ons) */}
                             {formatCurrency(item.finalPrice)}
                           </p>
                           {item.quantity > 1 && (
                             <p className="text-sm text-black-500 dark:text-black-400">
                               Total:{" "}
-                              {/* Calculate total for line item based on finalPrice */}
                               {formatCurrency(item.finalPrice * item.quantity)}
                             </p>
                           )}

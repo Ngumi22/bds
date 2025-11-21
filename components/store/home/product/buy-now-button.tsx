@@ -9,16 +9,11 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
-import { WhatsappPhoneNumber } from "@/lib/constants"; // Ensure this exists
+import { WhatsappPhoneNumber } from "@/lib/constants";
 import type { CartItem, CartAddOn } from "@/hooks/use-cart-store";
 import { MinimalProductData } from "@/lib/product/product.types";
 import { formatCurrency } from "@/lib/utils/form-helpers";
 
-// -----------------------------------------------------------------------------
-// Type Definitions for Shadcn Button (since ButtonProps is not exported)
-// -----------------------------------------------------------------------------
-
-// Extend these as needed based on your actual button component definition
 type ButtonVariant =
   | "default"
   | "destructive"
@@ -34,20 +29,15 @@ interface CustomButtonProps {
   asChild?: boolean;
 }
 
-// Define ButtonProps including native HTML attributes and custom properties
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     CustomButtonProps {}
-
-// -----------------------------------------------------------------------------
-// Component Props
-// -----------------------------------------------------------------------------
 
 interface BaseProps extends ButtonProps {
   phoneNumber?: string;
   label?: string;
   showIconOnly?: boolean;
-  className?: string; // Explicitly included common props here
+  className?: string;
   variant?: ButtonVariant;
   size?: ButtonSize;
 }
@@ -63,17 +53,12 @@ interface SingleProductModeProps {
   product: MinimalProductData;
   selectedVariants: Record<string, string>;
   quantity: number;
-  price: number; // Calculated unit price (base + variant mod)
+  price: number;
   addOns: CartAddOn[];
 }
 
-// Use intersection (&) to ensure all base properties are available regardless of mode
 type WhatsAppOrderButtonProps = BaseProps &
   (CartModeProps | SingleProductModeProps);
-
-// -----------------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------------
 
 const formatVariantString = (variants?: Record<string, string>) => {
   if (!variants || Object.keys(variants).length === 0) return "";
@@ -89,7 +74,6 @@ const formatAddOnsString = (addOns?: CartAddOn[]) => {
     .join("\n");
 };
 
-// List of custom props that should NOT be passed to the DOM element
 const customPropsToFilter = [
   "mode",
   "cartItems",
@@ -107,10 +91,6 @@ const customPropsToFilter = [
   "size",
 ];
 
-// -----------------------------------------------------------------------------
-// Component
-// -----------------------------------------------------------------------------
-
 export function WhatsAppOrderButton(props: WhatsAppOrderButtonProps) {
   const {
     phoneNumber: propPhoneNumber,
@@ -124,13 +104,11 @@ export function WhatsAppOrderButton(props: WhatsAppOrderButtonProps) {
 
   const [loading, setLoading] = useState(false);
 
-  // Safely get phone number, ensuring it is a string for the replace method
   const phoneNumber = String(
     propPhoneNumber || WhatsappPhoneNumber || "254700000000"
   );
 
   const handleCartOrder = () => {
-    // Type assertion is safe here
     const cartProps = props as CartModeProps;
     const { cartItems, cartTotal } = cartProps;
 
@@ -168,7 +146,6 @@ export function WhatsAppOrderButton(props: WhatsAppOrderButtonProps) {
     const variantStr = formatVariantString(selectedVariants);
     const addOnStr = formatAddOnsString(addOns);
 
-    // Calculate total for this specific single order config
     const addOnTotal = addOns.reduce((sum, a) => sum + a.price, 0);
     const finalUnitPrice = price + addOnTotal;
     const total = finalUnitPrice * quantity;
@@ -176,7 +153,7 @@ export function WhatsAppOrderButton(props: WhatsAppOrderButtonProps) {
     let message = `Hello, I am interested in buying this product:\n\n*${product.name}*\nQuantity: ${quantity}`;
 
     if (variantStr) message += `\nVariants: ${variantStr}`;
-    if (addOnStr) message += `\n\n${addOnStr}`; // Include add-on list
+    if (addOnStr) message += `\n\n${addOnStr}`;
 
     message += `\n\n*Total Price: ${formatCurrency(total)}*`;
 
@@ -205,18 +182,15 @@ export function WhatsAppOrderButton(props: WhatsAppOrderButtonProps) {
       return;
     }
 
-    // Construct WhatsApp URL: removing all non-digit characters for safety
     const cleanPhoneNumber = phoneNumber.replace(/[^0-9]/g, "");
     const url = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(
       messageBody
     )}`;
 
-    // Open in new tab
     window.open(url, "_blank");
     setLoading(false);
   };
 
-  // Determine disabled state
   const isDisabled =
     loading ||
     (props.mode === "cart" &&
@@ -224,11 +198,9 @@ export function WhatsAppOrderButton(props: WhatsAppOrderButtonProps) {
     (props.mode === "single" &&
       (props as SingleProductModeProps).product.stockStatus === "OUT_OF_STOCK");
 
-  // Determine Default Label
   const buttonLabel =
     label || (props.mode === "cart" ? "Order Cart on WhatsApp" : "Order Now");
 
-  // Filter out custom props before spreading onto the Button
   const buttonRestProps = Object.keys(rest).reduce((acc, key) => {
     if (!customPropsToFilter.includes(key)) {
       (acc as any)[key] = (rest as any)[key];
@@ -246,8 +218,7 @@ export function WhatsAppOrderButton(props: WhatsAppOrderButtonProps) {
             variant={variant}
             size={size}
             className={`gap-2 ${className}`}
-            {...buttonRestProps} // Only spread safe/valid button props here
-          >
+            {...buttonRestProps}>
             {loading ? (
               <svg
                 className="animate-spin h-4 w-4"

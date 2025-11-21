@@ -18,6 +18,7 @@ import { WishlistButtonSmall } from "../store/home/product/wishlist-button";
 import QuickBuy from "../store/home/product/whatsapp";
 import { useCallback, useState } from "react";
 import { QuickViewDialog } from "./quick-view";
+import Link from "next/link";
 
 interface ProductCardProps {
   product: MinimalProductData;
@@ -125,13 +126,14 @@ export function ProductCard({ product, isLoaded }: ProductCardProps) {
             ))}
           </div>
 
-          <h3
+          <Link
+            href={`/products/${product.slug}`}
             className="text-sm font-medium text-black line-clamp-2 min-h-[2.5em]"
             title={product.name}>
             {product.name}
-          </h3>
+          </Link>
 
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1">
+          <div className="flex no-wrap items-baseline gap-x-2 gap-y-1 mt-1">
             {isSale && (
               <span className="text-xs text-gray-400 line-through decoration-gray-400">
                 {product.originalPrice && formatCurrency(product.originalPrice)}

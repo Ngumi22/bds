@@ -1,7 +1,6 @@
 "use client";
 import { lazy } from "react";
 import { BlogPost, Category } from "@prisma/client";
-
 import { HeroCarousel } from "@/components/store/home/hero-section/carousel";
 import {
   CategoriesSection,
@@ -15,18 +14,11 @@ import {
   ParentCategoryWithSubCategoriesData,
 } from "@/lib/actions/products";
 import { MinimalProductData } from "@/lib/product/product.types";
-import CollectionProducts from "@/components/store/home/homepage-product-display/collection";
-import CategoriesProducts from "@/components/store/home/homepage-product-display/categories";
-import CategorySection from "@/components/store/home/homepage-product-display/category-sub";
-import HomeBrandSection, {
-  BrandWithProducts,
-} from "@/components/store/home/homepage-product-display/brand-sections";
-import CollectionsSection from "@/components/store/home/homepage-product-display/collections";
-import { PromoBanner } from "@/components/shared/promo-banner";
 import { ExitIntentPopup } from "@/components/store/product-page/exit-intent-popup";
-import { ProductSection } from "@/components/shared/product-section";
 import CatSection from "@/components/store/home/homepage-product-display/cat.section";
-import BrandSection from "@/components/store/home/homepage-product-display/brand-section";
+import BrandSection, {
+  BrandWithProducts,
+} from "@/components/store/home/homepage-product-display/brand-section";
 import Colle from "@/components/store/home/homepage-product-display/colle";
 
 const FlashSaleClient = lazy(
@@ -73,10 +65,7 @@ export default function HomePageClient({
   initialCategories,
   initialFlashSaleData,
   blogPosts,
-  collections,
-  collectionsData,
   slides,
-  initialCategoriesWithProducts,
   featuredCollections,
   categoriesWithSubs,
   brandsWithProducts,
@@ -86,8 +75,6 @@ export default function HomePageClient({
   const newProducts = initialNewArrivals;
   const categories = initialCategories;
   const flashSaleData = initialFlashSaleData;
-  const categoriesWithProducts = initialCategoriesWithProducts;
-  const topLevelCategories = categories.filter((cat) => !cat.parentId);
 
   if (!products || !featured || !newProducts || !categories) {
     return <div>Error loading data</div>;
@@ -132,29 +119,6 @@ export default function HomePageClient({
             />
           ))}
 
-          <PromotionalSection />
-
-          {/* {categoriesWithSubs.map((categoryData) => (
-            <CategorySection
-              key={categoryData.slug}
-              categoriesWithSubs={categoryData}
-            />
-          ))}
-          <PromotionalSection />
-          {brandsWithProducts && brandsWithProducts.length > 0 && (
-            <HomeBrandSection brandsWithProducts={brandsWithProducts} />
-          )}
-          {featuredCollections.map((collection) => (
-            <CollectionProducts
-              key={collection.id}
-              title={collection.name}
-              products={collection.products}
-            />
-          ))} */}
-
-          {/* {collections && collections.length > 0 && (
-            <CollectionsSection collections={collections} />
-          )} */}
           <PromotionalSection1 />
           <BlogSection blogPosts={blogPosts} />
         </div>

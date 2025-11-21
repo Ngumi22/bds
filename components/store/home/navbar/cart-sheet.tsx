@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils/form-helpers";
 import Image from "next/image";
 import { useCartStore } from "@/hooks/use-cart-store";
+import Link from "next/link";
 
 export function CartSheet() {
   const cartItems = useCartStore((s) => s.items);
@@ -21,7 +22,7 @@ export function CartSheet() {
   return (
     <SheetContent
       side="right"
-      className="max-w-md md:min-w-lg p-0 bg-white h-screen max-h-screen overflow-hidden flex flex-col">
+      className="max-w-md md:min-w-lg p-0 bg-white h-dvh max-h-full overflow-hidden flex flex-col">
       <SheetHeader className="p-3 border-b border-gray-100 shrink-0">
         <SheetTitle className="flex items-center justify-between text-gray-900 text-xl font-semibold">
           Shopping Cart
@@ -104,12 +105,10 @@ export function CartSheet() {
 
             <div className="flex items-center justify-between gap-2 pt-2">
               <Button className="w-1/2 bg-gray-800 hover:bg-gray-900 text-white font-semibold rounded-sm">
-                Checkout
+                <Link href={"/checkout"}> Checkout</Link>
               </Button>
-              <Button
-                variant="outline"
-                className="w-1/2 bg-white border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold rounded-sm">
-                View Cart
+              <Button className="w-1/2 bg-white border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold rounded-sm">
+                <Link href={"/cart"}>View Cart</Link>
               </Button>
             </div>
           </div>

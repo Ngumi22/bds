@@ -17,10 +17,10 @@ type NavItem = {
 const navItems: NavItem[] = [
   { id: "home", label: "Home", icon: Home, href: "/" },
   {
-    id: "categories",
-    label: "Categories",
+    id: "collections",
+    label: "Collections",
     icon: LayoutGrid,
-    href: "/categories",
+    href: "/collections",
   },
   { id: "wishlist", label: "Wishlist", icon: Heart, href: "/wishlist" },
   {

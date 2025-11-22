@@ -133,13 +133,13 @@ export function ProductCard({ product, isLoaded }: ProductCardProps) {
             {product.name}
           </Link>
 
-          <div className="flex no-wrap items-baseline gap-x-2 gap-y-1 mt-1">
+          <div className="flex no-wrap items-baseline gap-x-1 gap-y-1 mt-1">
             {isSale && (
-              <span className="text-xs text-gray-400 line-through decoration-gray-400">
+              <span className="text-[10px] md:text-xs text-gray-400 line-through decoration-gray-400">
                 {product.originalPrice && formatCurrency(product.originalPrice)}
               </span>
             )}
-            <span className="text-sm font-bold text-black">
+            <span className="text-xs text-black">
               {formatCurrency(product.price)}
             </span>
           </div>

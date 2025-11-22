@@ -7,6 +7,7 @@ export function middleware(request: NextRequest) {
 
   const sessionToken =
     request.cookies.get("better-auth.session_token")?.value ||
+    request.cookies.get("__Secure-better-auth.session_token")?.value ||
     request.cookies.get("__session")?.value;
 
   if ((isDashboardRoute || isAdminRoute) && !sessionToken) {
@@ -15,9 +16,3 @@ export function middleware(request: NextRequest) {
 
   return NextResponse.next();
 }
-
-export const config = {
-  matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|signin).*)",
-  ],
-};

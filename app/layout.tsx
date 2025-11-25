@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { Jost, Roboto } from "next/font/google";
+import { Roboto } from "next/font/google";
 import "@/app/globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "./providers";
 
-const jost = Jost({ subsets: ["latin"] });
 const roboto = Roboto({ subsets: ["latin"], weight: "400" });
 
 export const metadata: Metadata = {
@@ -23,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: " https://www.bernzzdigitalsolutions.co.ke",
+    url: "https://www.bernzzdigitalsolutions.co.ke",
     title: "Bernzz Digital Solutions - Premium Electronics",
     description:
       "Your one-stop shop for phones, laptops, printers and software",

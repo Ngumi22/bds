@@ -33,8 +33,9 @@ import { formatCurrency } from "@/lib/utils/form-helpers";
 import { MinimalProductData } from "@/lib/product/product.types";
 import { useProductQuickView } from "@/hooks/use-product-view";
 import AddToCartButton from "../store/home/product/add-to-cart";
+import { WishlistButtonFull } from "../store/home/product/wishlist-button";
+import QuickBuy from "../store/home/product/whatsapp";
 
-// --- Constants (Matches your Product Page Logic) ---
 const PROTECTION_PLAN_DATA = {
   name: "2-Year Protection Plan",
   price: 29.99,
@@ -54,7 +55,6 @@ const iconMap: Record<string, any> = {
   bluetooth: Bluetooth,
 };
 
-// --- Helper for Flash Sale Timer ---
 function calculateTimeLeft(endDate: Date | string | null) {
   if (!endDate) return { days: 0, hours: 0, mins: 0, secs: 0, total: 0 };
   const total = Date.parse(endDate.toString()) - Date.now();
@@ -262,8 +262,8 @@ export function QuickViewDialog({
                 <Skeleton className="h-10 w-3/4" />
                 <Skeleton className="h-24 w-full" />
                 <div className="grid grid-cols-2 gap-4">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-9 w-full" />
+                  <Skeleton className="h-9 w-full" />
                 </div>
               </div>
             ) : (
@@ -633,56 +633,15 @@ export function QuickViewDialog({
                     quantity={quantity}
                     price={variantAdjustedPrice}
                     selectedVariants={selectedVariants}
-                    // @ts-ignore
                     addOns={activeAddOns}
                     disabled={!currentStock.inStock}
                     isOutOfStock={!currentStock.inStock}
-                    className="flex-1 h-12 text-sm font-bold uppercase tracking-wide"
+                    className="flex-1 h-9 text-sm font-bold uppercase tracking-wide border border-black bg-black text-white hover:bg-white hover:text-black"
                   />
 
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    onClick={() => setIsFavorite(!isFavorite)}
-                    className={`h-12 w-12 shrink-0 border-2 ${
-                      isFavorite
-                        ? "border-red-200 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600"
-                        : "hover:bg-muted"
-                    }`}>
-                    <Heart
-                      className={`h-5 w-5 ${isFavorite ? "fill-current" : ""}`}
-                    />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-12 w-12 shrink-0 border-2 hover:bg-muted">
-                    <Share2 className="h-5 w-5" />
-                  </Button>
+                  <WishlistButtonFull product={product} />
+                  <QuickBuy product={product} />
                 </div>
-
-                <Button
-                  variant="secondary"
-                  className="w-full h-12 font-bold uppercase tracking-wide border-2 border-foreground bg-transparent hover:bg-foreground hover:text-background transition-all"
-                  onClick={() => {
-                    if (onAddToCart) {
-                      const cartItem = {
-                        productId: product.slug,
-                        productName: product.name,
-                        basePrice: product.price,
-                        selectedVariants: selectedVariants,
-                        finalPrice: variantAdjustedPrice,
-                        quantity: quantity,
-                        totalPrice: totalDisplayPrice,
-                        image: product.mainImage,
-                        addOns: activeAddOns,
-                      };
-                      onAddToCart(cartItem);
-                    }
-                  }}
-                  disabled={!currentStock.inStock}>
-                  Buy Now
-                </Button>
               </div>
             )}
           </div>

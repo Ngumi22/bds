@@ -18,6 +18,7 @@ interface AddToCartButtonProps {
   className?: string;
   disabled?: boolean;
   isOutOfStock?: boolean;
+  addOns?: any;
 }
 
 export default function AddToCartButton({
@@ -39,29 +40,20 @@ export default function AddToCartButton({
   const addProductToCart = useCartStore((s) => s.addProductToCart);
   const cartItems = useCartStore((s) => s.items);
 
-  // Logic: Does it have variants AND have we NOT selected them yet?
   const hasVariants =
     (product.hasVariants ||
       (product.colorVariants && product.colorVariants.length > 0)) &&
     Object.keys(selectedVariants).length === 0 &&
-    mode === "icon"; // Only redirect in icon mode
+    mode === "icon";
 
-  // Determine Stock Status (Use prop if provided, otherwise fallback to product)
   const isOutOfStock =
     isOutOfStockProp !== undefined
       ? isOutOfStockProp
       : product.stockStatus === "OUT_OF_STOCK";
 
-  // Check if specific combo is in cart (simplified for now, usually checks variant ID)
   const isInCart =
     mounted &&
-    cartItems.some(
-      (item) =>
-        item.productId === product.id &&
-        // Simple check: if we are in icon mode, just check ID.
-        // If detail mode, we'd ideally check variant match, but for UI feedback 'in cart' is often enough
-        mode === "icon"
-    );
+    cartItems.some((item) => item.productId === product.id && mode === "icon");
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -69,27 +61,21 @@ export default function AddToCartButton({
 
     if (loading) return;
 
-    // 1. Redirect if it's a card with options
     if (hasVariants) {
       router.push(`/products/${product.slug}`);
       return;
     }
 
-    // 2. Add to cart logic
     setLoading(true);
     try {
-      // Pass all details to your store.
-      // Ensure your store supports these arguments or adapt accordingly.
       await addProductToCart(
         {
           ...product,
-          price: price || product.price, // Use dynamic price if provided
+          price: price || product.price,
         },
         quantity,
         selectedVariants
       );
-
-      // Optional: Add toast notification here
     } catch (err) {
       console.error("Failed to add to cart", err);
     } finally {
@@ -97,7 +83,6 @@ export default function AddToCartButton({
     }
   };
 
-  // --- RENDER: ICON MODE (Product Card) ---
   if (mode === "icon") {
     const iconProps = { className: "w-4 h-4" };
     let Icon = ShoppingCart;
@@ -127,7 +112,7 @@ export default function AddToCartButton({
         aria-label={label}
         className={cn(
           "flex items-center justify-center w-full h-full transition-colors",
-          // Status colors
+
           isOutOfStock
             ? "text-red-400 cursor-not-allowed opacity-50"
             : isInCart
@@ -148,22 +133,14 @@ export default function AddToCartButton({
       </button>
     );
   }
-
-  // --- RENDER: DEFAULT MODE (Quick View / Details) ---
-  const displayPrice = price || product.price;
-
   return (
     <Button
       onClick={handleAddToCart}
       disabled={disabledProp || isOutOfStock || loading}
-      className={cn("flex-1 h-11 text-base", className)}>
+      className={cn("flex-1 h-11 text-base ", className)}>
       {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
 
-      {loading
-        ? "Adding..."
-        : isOutOfStock
-        ? "Out of Stock"
-        : `Add to Cart - ${formatCurrency(displayPrice * quantity)}`}
+      {loading ? "Adding..." : isOutOfStock ? "Out of Stock" : `Add to Cart`}
     </Button>
   );
 }

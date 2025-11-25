@@ -1,18 +1,12 @@
 "use server";
 
 import { unstable_cache } from "next/cache";
-import prisma from "@/lib/prisma"; // Adjust path to your prisma client
-import { PRODUCTS_TAG } from "@/lib/constants"; // Adjust path to your constants
+import prisma from "@/lib/prisma";
+import { PRODUCTS_TAG } from "@/lib/constants";
 
-/**
- * Transforms raw Prisma relational data into a clean, flat structure for the UI.
- * This prevents "Cannot convert undefined to object" errors by ensuring
- * specifications are objects, not arrays.
- */
 function transformProductData(prismaProduct: any) {
   if (!prismaProduct) return null;
 
-  // 1. Transform Variant Groups
   const variantTypes =
     prismaProduct.variantGroups?.map((group: any) => ({
       name: group.name,
@@ -26,15 +20,11 @@ function transformProductData(prismaProduct: any) {
       })),
     })) || [];
 
-  // 2. Flatten Specifications (CRITICAL FIX)
-  // Converts [{ value: "10kg", specificationDef: { name: "Weight" } }]
-  // into { "Weight": "10kg" }
   const specifications =
     prismaProduct.specifications?.reduce(
       (acc: Record<string, string>, spec: any) => {
         const key = spec.specificationDef?.name;
         const value = spec.value;
-        // Only add if both key and value exist
         if (key && value) {
           acc[key] = value;
         }
@@ -43,23 +33,18 @@ function transformProductData(prismaProduct: any) {
       {}
     ) || {};
 
-  // 3. Map Features with Fallbacks
   const features =
     prismaProduct.features?.map((feature: any) => ({
       icon: feature.icon,
-      // specific fallback in case DB column is 'name' instead of 'title'
       title: feature.title || feature.name,
-      // specific fallback in case DB column is 'details' instead of 'description'
       description: feature.description || feature.details,
     })) || [];
 
-  // 4. Calculate Delivery Date
   const deliveryDate = new Date();
   deliveryDate.setDate(
     deliveryDate.getDate() + (prismaProduct.shippingInfo?.estimatedDays || 7)
   );
 
-  // 5. Find Active Discount
   const activeDiscount = prismaProduct.applicableDiscounts?.find(
     (discount: any) =>
       discount.discount?.isActive &&
@@ -67,7 +52,6 @@ function transformProductData(prismaProduct: any) {
       (!discount.discount.expiresAt || discount.discount.expiresAt > new Date())
   );
 
-  // 6. Return Final Shape
   return {
     id: prismaProduct.id,
     name: prismaProduct.name,
@@ -76,7 +60,6 @@ function transformProductData(prismaProduct: any) {
     description: prismaProduct.description,
     shortDescription: prismaProduct.shortDescription || undefined,
 
-    // Pricing & Stock
     price: Number(prismaProduct.price),
     originalPrice: prismaProduct.originalPrice
       ? Number(prismaProduct.originalPrice)
@@ -87,7 +70,6 @@ function transformProductData(prismaProduct: any) {
     stockCount: prismaProduct.stockCount || 0,
     viewingNow: prismaProduct.viewingNow || 0,
 
-    // Metadata
     rating: prismaProduct.averageRating || 0,
     reviewCount: prismaProduct.reviewCount || 0,
     brand: prismaProduct.brand?.name || "",
@@ -95,20 +77,17 @@ function transformProductData(prismaProduct: any) {
     category: prismaProduct.category?.name || "",
     collection: prismaProduct.collections?.[0]?.collection?.name || undefined,
 
-    // Transformed Data
-    specifications, // <--- This is now a safe Object
+    specifications,
     variantTypes:
       prismaProduct.variantGroups?.length > 0 ? variantTypes : undefined,
     features: features.length > 0 ? features : undefined,
 
-    // Images
     images: [
       prismaProduct.mainImage,
       ...(prismaProduct.galleryImages || []),
     ].filter(Boolean),
     videoUrl: prismaProduct.videoUrl || undefined,
 
-    // Shipping & Delivery
     deliveryDate: deliveryDate.toISOString().split("T")[0],
     shipsIn:
       prismaProduct.shipsIn ||
@@ -127,7 +106,6 @@ function transformProductData(prismaProduct: any) {
         }
       : undefined,
 
-    // Offer Logic
     offerEndsIn: activeDiscount?.discount?.expiresAt
       ? Math.ceil(
           (new Date(activeDiscount.discount.expiresAt).getTime() - Date.now()) /
@@ -135,7 +113,6 @@ function transformProductData(prismaProduct: any) {
         )
       : undefined,
 
-    // Reviews
     reviews:
       prismaProduct.reviews?.map((review: any) => ({
         id: review.id,

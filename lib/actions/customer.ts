@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
-import { env } from "@/lib/schemas/env.schema"; // Import your env schema
+import { env } from "@/lib/schemas/env.schema";
 
 const signUpSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -22,16 +22,13 @@ export async function signUpWithProfile(formData: FormData) {
     const validatedData = signUpSchema.parse(rawData);
     const normalizedEmail = validatedData.email.toLowerCase();
 
-    // 1. Check Whitelist directly here
     const isAdmin = env.ADMIN_WHITELIST.includes(normalizedEmail);
 
-    // 2. Create the user (Default is CUSTOMER based on your auth.ts config)
     const signUpResult = await auth.api.signUpEmail({
       body: {
         name: validatedData.name,
         email: validatedData.email,
         password: validatedData.password,
-        // We cannot pass 'role' here because 'input: false' is set in auth.ts
       },
     });
 
@@ -39,20 +36,16 @@ export async function signUpWithProfile(formData: FormData) {
       return { error: "User creation failed" };
     }
 
-    // 3. Handle Role & Profile Logic
     if (isAdmin) {
-      // Force update to ADMIN
       await prisma.user.update({
         where: { id: signUpResult.user.id },
         data: {
           role: "ADMIN",
-          // Optional: Auto-verify admins so they don't need email verification
           emailVerified: true,
         },
       });
       console.log(`Promoted ${normalizedEmail} to ADMIN`);
     } else {
-      // Handle CUSTOMER logic
       const customerProfile = await prisma.customerProfile.findUnique({
         where: { userId: signUpResult.user.id },
       });
@@ -81,7 +74,6 @@ export async function signUpWithProfile(formData: FormData) {
     }
 
     if (error instanceof Error) {
-      // Better Auth throws APIError, checking message is a safe fallback
       if (
         error.message.includes("User already exists") ||
         error.message.includes("P2002")

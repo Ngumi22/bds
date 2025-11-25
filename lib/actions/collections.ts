@@ -951,20 +951,12 @@ export async function getCollectionsWithProductsData() {
 
   const collections = await prisma.collection.findMany({
     where: {
-      OR: [
-        // Collections with no end date
-        { endsAt: null },
-        // Or collections that haven't ended yet
-        { endsAt: { gte: now } },
-      ],
-      // Only show collections that have started (if startsAt exists)
+      OR: [{ endsAt: null }, { endsAt: { gte: now } }],
       AND: [
         {
           OR: [{ startsAt: null }, { startsAt: { lte: now } }],
         },
       ],
-      // Optional: you can add isActive if you have it in the schema
-      // isActive: true,
     },
     select: {
       id: true,

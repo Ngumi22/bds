@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Phone, SlidersVertical, XCircle } from "lucide-react"; // Ensure icons are imported
+import { SlidersVertical, XCircle } from "lucide-react";
 import { whatsappIcon } from "@/components/icons";
 import { WhatsappPhoneNumber } from "@/lib/constants";
 import { MinimalProductData } from "@/lib/product/product.types";
@@ -15,10 +15,17 @@ import {
 
 interface QuickBuyProps {
   product: MinimalProductData;
+  selectedVariants?: Record<string, string>;
+  quantity?: number;
   className?: string;
 }
 
-export default function QuickBuy({ product, className }: QuickBuyProps) {
+export default function QuickBuy({
+  product,
+  selectedVariants = {},
+  quantity = 1,
+  className,
+}: QuickBuyProps) {
   const router = useRouter();
 
   const hasRealVariants =
@@ -27,23 +34,34 @@ export default function QuickBuy({ product, className }: QuickBuyProps) {
 
   const isOutOfStock = product.stockStatus === "OUT_OF_STOCK";
 
+  const variantText =
+    Object.keys(selectedVariants).length > 0
+      ? Object.entries(selectedVariants)
+          .map(([type, option]) => `${type}: ${option}`)
+          .join("%0A")
+      : "";
+
+  const message = encodeURIComponent(
+    `Hello, I'm interested in buying:
+
+Product: ${product.name}
+Quantity: ${quantity}
+${variantText ? "Variants:\n" + variantText : ""}
+Link: ${process.env.NEXT_PUBLIC_BASE_URL}/products/${product.slug}
+`
+  );
+
   let icon = whatsappIcon.icon;
   let label = "Buy on whatsapp";
-  let onClick = () => router.push(`https://wa.me/${WhatsappPhoneNumber}`);
+  let onClick = () =>
+    router.push(`https://wa.me/${WhatsappPhoneNumber}?text=${message}`);
   let disabled = false;
-  let buttonClass = "";
 
   if (isOutOfStock) {
     icon = <XCircle size={20} />;
     label = "Out of stock";
     onClick = () => {};
     disabled = true;
-    buttonClass =
-      "opacity-50 cursor-not-allowed hover:bg-transparent text-red-400";
-  } else if (hasRealVariants) {
-    icon = <SlidersVertical size={20} />;
-    label = "Select options";
-    onClick = () => router.push(`/products/${product.slug}`);
   }
 
   return (
@@ -52,12 +70,14 @@ export default function QuickBuy({ product, className }: QuickBuyProps) {
         <TooltipTrigger asChild>
           <button
             onClick={onClick}
+            disabled={disabled}
             aria-label={label}
             className={cn(
-              "flex items-center justify-center w-full h-full text-white hover:bg-white/20 transition-colors",
+              "flex flex-1 items-center justify-center w-full h-9 text-sm font-bold uppercase tracking-wide text-white bg-green-600",
+              disabled && "opacity-50 cursor-not-allowed",
               className
             )}>
-            {whatsappIcon.icon}
+            {icon}
           </button>
         </TooltipTrigger>
         <TooltipContent side="bottom">

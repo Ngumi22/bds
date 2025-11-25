@@ -58,7 +58,6 @@ const mapPrismaProductToMinimal = (p: any): MinimalProductData => {
     stockStatus: p.stockStatus,
     hasVariants: computedHasVariants,
     isActive: p.isActive,
-    features: p.features,
     collections: p.collections?.map((pc: any) => ({
       id: pc.id,
       collection: pc.collection,

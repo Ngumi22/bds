@@ -178,17 +178,6 @@ export default async function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
 
-      <section className="px-6 pt-6 max-w-3xl">
-        <h1 className="text-2xl font-semibold">
-          Kenya’s Trusted Online Store for Electronics & Tech
-        </h1>
-        <p className="text-gray-700 text-sm mt-2">
-          Discover laptops, smartphones, TVs, appliances, accessories, and more
-          — all at unbeatable prices. We deliver anywhere in Kenya and guarantee
-          genuine products with warranty.
-        </p>
-      </section>
-
       <div className="flex-1 md:mt-4">
         <div className="md:px-6 flex gap-4">
           <div className="h-full w-full xl:w-2/3">

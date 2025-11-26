@@ -228,7 +228,7 @@ export default async function ProductsPage({ searchParams }: Props) {
           __html: JSON.stringify(localBusinessJsonLd),
         }}
       />
-
+      {/*
       <div className="prose max-w-3xl mb-6">
         <h1 className="text-2xl font-semibold">{summaryHeading}</h1>
         <p className="text-sm text-gray-700">{summaryParagraph}</p>
@@ -254,7 +254,7 @@ export default async function ProductsPage({ searchParams }: Props) {
             </dd>
           </div>
         </dl>
-      </div>
+      </div> */}
 
       <div className="flex flex-col lg:flex-row gap-8">
         <Suspense fallback={<ProductsLoading />}>

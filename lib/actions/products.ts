@@ -7,6 +7,10 @@ import { Collection, CollectionType, Prisma } from "@prisma/client";
 import { normalizeColorValue } from "../utils/color-helpers";
 import { MinimalProductData } from "../product/product.types";
 import { PRODUCT_CACHE_TTL, PRODUCTS_TAG } from "../constants";
+import {
+  productSelectPayload,
+  transformMinimalProduct,
+} from "../product/product.helpers";
 
 export interface CategoryWithDiscountedProducts {
   id: string;
@@ -289,7 +293,7 @@ export const getSpecialOffersData = unstable_cache(
 );
 
 export const getCollectionsWithProducts = unstable_cache(
-  async (productLimit: number = 5): Promise<CollectionWithProducts[]> => {
+  async (productLimit: number = 5) => {
     const collections = await prisma.collection.findMany({
       where: {
         collectionType: { not: CollectionType.FLASH_SALE },
@@ -304,38 +308,28 @@ export const getCollectionsWithProducts = unstable_cache(
         startsAt: true,
         endsAt: true,
         description: true,
-        createdAt: true,
-        updatedAt: true,
+
+        products: {
+          take: productLimit,
+          where: { product: { isActive: true } },
+          select: {
+            product: {
+              select: productSelectPayload,
+            },
+          },
+        },
       },
     });
 
-    const collectionsWithData = await Promise.all(
-      collections.map(async (collection) => {
-        const fetchProducts = await createCachedProductFetcher({
-          where: {
-            collections: { some: { collectionId: collection.id } },
-            isActive: true,
-          },
-          take: productLimit,
-          cacheKey: `collection-products-${collection.id}-${productLimit}`,
-          tags: ["products", `collection-${collection.id}`],
-        });
-
-        const products = await fetchProducts();
-
-        return {
-          ...collection,
-          products,
-        };
-      })
-    );
-
-    return collectionsWithData.filter((c) => c.products.length > 0);
+    return collections.map((col) => ({
+      ...col,
+      products: col.products.map((p) => transformMinimalProduct(p.product)),
+    }));
   },
-  ["home-collections-with-products"],
+  ["collections-with-products-full"],
   {
     tags: ["collections", "products"],
-    revalidate: 60 * 15,
+    revalidate: 3600,
   }
 );
 
@@ -351,15 +345,18 @@ export interface ParentCategoryWithSubCategoriesData {
 }
 
 export const getParentCategoriesWithProducts = unstable_cache(
-  async (): Promise<ParentCategoryWithSubCategoriesData[]> => {
-    const parentCategories = await prisma.category.findMany({
+  async () => {
+    const categories = await prisma.category.findMany({
       where: { parentId: null, isActive: true },
       select: {
         name: true,
         slug: true,
         image: true,
         children: {
-          where: { isActive: true },
+          where: {
+            isActive: true,
+            products: { some: { isActive: true } },
+          },
           select: {
             id: true,
             name: true,
@@ -368,36 +365,32 @@ export const getParentCategoriesWithProducts = unstable_cache(
               where: { isActive: true },
               orderBy: { createdAt: "desc" },
               take: 10,
-              select: minimalProductSelect,
+              select: productSelectPayload,
             },
           },
         },
       },
     });
 
-    const categoriesWithProducts = parentCategories.map((parent) => {
-      const subCategoriesWithProducts = parent.children.map((subCat) => ({
-        name: subCat.name,
-        slug: subCat.slug,
-        products: subCat.products.map(mapPrismaProductToMinimal),
-      }));
-
-      return {
+    return categories
+      .map((parent) => ({
         name: parent.name,
         slug: parent.slug,
         image: parent.image ?? "",
-        subCategories: subCategoriesWithProducts.filter(
-          (s) => s.products.length > 0
-        ),
-      };
-    });
-
-    return categoriesWithProducts.filter((c) => c.subCategories.length > 0);
+        subCategories: parent.children
+          .map((child) => ({
+            name: child.name,
+            slug: child.slug,
+            products: child.products.map(transformMinimalProduct),
+          }))
+          .filter((c) => c.products.length > 0),
+      }))
+      .filter((c) => c.subCategories.length > 0);
   },
-  ["parent-categories-with-products"],
+  ["parent-cats-with-products"],
   {
     tags: ["categories", "products"],
-    revalidate: 60 * 30,
+    revalidate: 3600,
   }
 );
 
@@ -410,52 +403,38 @@ export interface BrandWithProducts {
 }
 
 export const getBrandsWithProducts = unstable_cache(
-  async (productLimit: number = 6): Promise<BrandWithProducts[]> => {
+  async (productLimit: number = 6) => {
     const brands = await prisma.brand.findMany({
       where: {
         isActive: true,
         products: { some: { isActive: true } },
       },
-      orderBy: {
-        name: "asc",
-      },
+      orderBy: { name: "asc" },
       select: {
         id: true,
         name: true,
         slug: true,
         description: true,
         logo: true,
-        isActive: true,
+        products: {
+          where: { isActive: true },
+          orderBy: { createdAt: "desc" },
+          take: productLimit,
+          select: productSelectPayload,
+        },
       },
     });
 
-    const brandsWithData = await Promise.all(
-      brands.map(async (brand) => {
-        const fetchProducts = await createCachedProductFetcher({
-          where: {
-            brandId: brand.id,
-            isActive: true,
-          },
-          take: productLimit,
-          orderBy: { createdAt: "desc" },
-          cacheKey: `brand-products-${brand.id}-${productLimit}`,
-          tags: [PRODUCTS_TAG, `brand-${brand.id}`],
-        });
-
-        const products = await fetchProducts();
-
-        return {
-          ...brand,
-          products,
-        };
-      })
-    );
-
-    return brandsWithData.filter((brand) => brand.products.length > 0);
+    return brands
+      .map((brand) => ({
+        ...brand,
+        products: brand.products.map(transformMinimalProduct),
+      }))
+      .filter((b) => b.products.length > 0);
   },
-  ["home-brands-with-products"],
+  ["brands-with-products-full"],
   {
-    tags: ["brands", PRODUCTS_TAG],
-    revalidate: PRODUCT_CACHE_TTL.PRODUCTS,
+    tags: ["brands", "products"],
+    revalidate: 3600,
   }
 );

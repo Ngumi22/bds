@@ -22,16 +22,19 @@ import { formatCurrency } from "@/lib/utils/form-helpers";
 
 interface SubCategory {
   name: string;
+  slug: string;
   href: string;
 }
 
 interface Brand {
   name: string;
+  slug: string;
   logo: string;
 }
 
 interface FeaturedProduct {
   name: string;
+  slug: string;
   price: number;
   mainImage: string;
 }
@@ -39,6 +42,7 @@ interface FeaturedProduct {
 export interface MegaMenuCategory {
   name: string;
   href: string;
+  slug: string;
   subcategories: SubCategory[];
   featuredProducts: FeaturedProduct[];
   brands: Brand[];
@@ -255,7 +259,7 @@ export function MegaMenu({ categories }: { categories: MegaMenuCategory[] }) {
                           .map((product, idx) => (
                             <Link
                               key={`${product.name}-${idx}`}
-                              href="#"
+                              href={`/products/${product.slug}`}
                               onClick={() => setIsSheetOpen(false)}
                               className="block group">
                               <div className="relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden mb-2">

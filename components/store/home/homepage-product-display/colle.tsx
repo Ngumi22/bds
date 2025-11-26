@@ -11,7 +11,10 @@ interface CollectionProductsProps {
 
 type ProductWithCollectionTag = MinimalProductData & { _collectionTab: string };
 
-export default function Colle({ title, products }: CollectionProductsProps) {
+export default function Collections({
+  title,
+  products,
+}: CollectionProductsProps) {
   const tabs = [
     { id: "new", label: "New Arrivals" },
     { id: "featured", label: "Featured" },

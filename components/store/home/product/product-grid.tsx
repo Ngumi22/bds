@@ -3,8 +3,8 @@
 import { useState, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { ProductGridProps, TabbedGrid } from "./tabbed-grid";
-import ProductCard from "./product-card";
 import { MinimalProductData } from "@/lib/product/product.types";
+import { ProductCard } from "@/components/shared/product-card";
 
 export default function ProductGrid({
   tabs,
@@ -22,7 +22,9 @@ export default function ProductGrid({
   }, [activeTab, tabs]);
 
   const renderProductItem = useCallback(
-    (product: MinimalProductData) => <ProductCard product={product} />,
+    (product: MinimalProductData) => (
+      <ProductCard product={product} isLoaded={true} />
+    ),
     []
   );
 

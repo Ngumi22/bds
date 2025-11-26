@@ -1,72 +1,99 @@
 import { getAllBlogPosts } from "@/lib/actions/blog";
 import { getAllCategories } from "@/lib/actions/categories";
-import {
-  getCollectionsWithProductsData,
-  getFlashSaleData,
-} from "@/lib/actions/collections";
+import { getFlashSaleData } from "@/lib/actions/collections";
 import { getAllHeroBanners } from "@/lib/data/hero-banner";
-import HomePageClient from "./_components/client-page";
 import {
   getBrandsWithProducts,
   getCollectionsWithProducts,
-  getFeaturedProducts,
-  getNewArrivals,
   getParentCategoriesWithProducts,
-  getSpecialOffersData,
 } from "@/lib/actions/products";
-import { filterProducts } from "@/lib/product/fetchProducts";
+
+import { HeroCarousel } from "@/components/store/home/hero-section/carousel";
+import {
+  CategoriesSection,
+  PromotionalSection,
+  PromotionalSection1,
+  PromotionalSection2,
+} from "@/components/store/home/product/home-page-sections";
+import FlashSaleClient from "@/components/shared/flash-sale";
+import BlogSection from "@/components/store/blog/blog-section";
+import BrandSection from "@/components/store/home/homepage-product-display/brand-section";
+import CatSection from "@/components/store/home/homepage-product-display/cat.section";
+import Collections from "@/components/store/home/homepage-product-display/colle";
+import { ExitIntentPopup } from "@/components/store/product-page/exit-intent-popup";
 
 export default async function Home() {
-  const searchParams = {
-    limit: 10,
-  };
-
-  const products = await filterProducts(searchParams);
-  const slides = await getAllHeroBanners();
-
   const [
-    featuredProducts,
-    newProducts,
+    slides,
     categories,
     flashSaleData,
     blogPosts,
     collections,
-    categoriesWithProducts,
-    collectionsData,
     categoriesWithSubs,
     brandsWithProducts,
   ] = await Promise.all([
-    getFeaturedProducts(),
-    getNewArrivals(),
+    getAllHeroBanners(),
     getAllCategories(),
     getFlashSaleData(),
     getAllBlogPosts(),
     getCollectionsWithProducts(),
-    getSpecialOffersData(),
-    getCollectionsWithProductsData(),
     getParentCategoriesWithProducts(),
     getBrandsWithProducts(),
   ]);
 
   const featuredCollections = collections?.slice(0, 4) || [];
-  const featuredCategories = categoriesWithProducts?.slice(0, 4) || [];
 
+  // 2. Render directly (No HomePageClient wrapper)
   return (
-    <HomePageClient
-      initialProducts={products.products}
-      initialFeatured={featuredProducts}
-      initialNewArrivals={newProducts}
-      initialCategories={categories}
-      initialFlashSaleData={flashSaleData}
-      initialCategoriesWithProducts={categoriesWithProducts}
-      blogPosts={blogPosts.posts}
-      collections={collections}
-      slides={slides}
-      collectionsData={collectionsData}
-      featuredCollections={featuredCollections}
-      featuredCategories={featuredCategories}
-      categoriesWithSubs={categoriesWithSubs}
-      brandsWithProducts={brandsWithProducts}
-    />
+    <main className="min-h-screen flex flex-col">
+      <div className="flex-1 md:mt-4">
+        <div className="md:px-6 flex gap-4">
+          <div className="h-full w-full xl:w-2/3">
+            <HeroCarousel slides={slides} />
+          </div>
+          <div className="hidden xl:block h-full w-1/3">
+            <PromotionalSection2 />
+          </div>
+        </div>
+
+        <div className="md:px-8 md:py-4 space-y-4">
+          <CategoriesSection categories={categories} />
+
+          {flashSaleData && (
+            <FlashSaleClient
+              products={flashSaleData.products}
+              saleEndDate={flashSaleData.saleEndDate}
+              collectionName={flashSaleData.collectionName}
+              collectionId={flashSaleData.collectionId}
+              collectionSlug={flashSaleData.collectionId}
+            />
+          )}
+
+          <PromotionalSection />
+
+          {categoriesWithSubs.map((categoryData) => (
+            <CatSection key={categoryData.slug} category={categoryData} />
+          ))}
+
+          {brandsWithProducts && brandsWithProducts.length > 0 && (
+            <BrandSection brandsWithProducts={brandsWithProducts} />
+          )}
+
+          <PromotionalSection />
+
+          {featuredCollections.map((collection) => (
+            <Collections
+              key={collection.id}
+              title={collection.name}
+              products={collection.products}
+            />
+          ))}
+
+          <PromotionalSection1 />
+          <BlogSection blogPosts={blogPosts.posts} />
+        </div>
+      </div>
+      <ExitIntentPopup />
+    </main>
   );
 }

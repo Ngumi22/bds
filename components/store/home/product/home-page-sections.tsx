@@ -7,11 +7,10 @@ import { Smartphone } from "lucide-react";
 import { categoryIcons } from "@/lib/constants";
 import { useMemo } from "react";
 
-import ProductCard from "./product-card";
-import { ProductCarousel, ProductCarouselItem } from "./product-carousel";
 import ProductGrid from "./product-grid";
-import { PromotionalBanner } from "../promotion-sections/promotional-banner";
+import { PromotionalBanner } from "../../../shared/promotional-banner";
 import { MinimalProductData } from "@/lib/product/product.types";
+import { ProductCard } from "@/components/shared/product-card";
 
 function buildCategoryDescendantsMap(categories: Category[]) {
   const childrenMap = new Map<string, string[]>();
@@ -162,52 +161,6 @@ export function CategoriesSection({ categories }: { categories: Category[] }) {
   );
 }
 
-export function CategoryProductsSection({
-  category,
-  products,
-  categories,
-}: {
-  category: string;
-  products: MinimalProductData[];
-  categories: Category[];
-}) {
-  const descendantsMap = buildCategoryDescendantsMap(categories);
-
-  const matchedCategory = categories.find(
-    (cat) => cat.slug.toLowerCase() === category.toLowerCase()
-  );
-  if (!matchedCategory) return null;
-
-  const descendantIds = descendantsMap.get(matchedCategory.id) || [
-    matchedCategory.id,
-  ];
-
-  const filtered = products.filter((p) =>
-    descendantIds.includes(p.category ?? "")
-  );
-
-  if (filtered.length === 0) return null;
-
-  return (
-    <ProductCarousel
-      title={
-        <div className="flex items-center">
-          Shop {matchedCategory.name}
-          <span className="ml-6 text-sm text-muted-foreground">
-            {filtered.length} products
-          </span>
-        </div>
-      }
-      viewAllHref={`/products?category=${matchedCategory.slug}`}>
-      {filtered.map((product) => (
-        <ProductCarouselItem key={product.id}>
-          <ProductCard product={product} />
-        </ProductCarouselItem>
-      ))}
-    </ProductCarousel>
-  );
-}
-
 export function TabbedProducts({
   featured,
   newArrivals,
@@ -312,59 +265,10 @@ export function SpecialOfferCarousel({
       </h2>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
         {discountedProducts.map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <ProductCard key={product.id} product={product} isLoaded={true} />
         ))}
       </div>
     </div>
-  );
-}
-
-export function DiscountedProducts({
-  products,
-}: {
-  products: MinimalProductData[];
-}) {
-  const discountedProducts = useMemo(() => {
-    return products
-      .filter((product) => {
-        if (!product.originalPrice || product.originalPrice <= product.price) {
-          return false;
-        }
-        const discountPercentage = Math.round(
-          ((product.originalPrice - product.price) / product.originalPrice) *
-            100
-        );
-        return discountPercentage >= 15;
-      })
-      .sort((a, b) => {
-        const discountA =
-          ((a.originalPrice! - a.price) / a.originalPrice!) * 100;
-        const discountB =
-          ((b.originalPrice! - b.price) / b.originalPrice!) * 100;
-        return discountB - discountA;
-      })
-      .slice(0, 5);
-  }, [products]);
-
-  if (discountedProducts.length === 0) {
-    return null;
-  }
-
-  return (
-    <ProductCarousel
-      title={
-        <div className="md:flex items-center gap-4 my-auto">
-          Hottest Sales & Discounts
-          <span className="text-red-600 font-semibold">Up to 50% Off</span>
-        </div>
-      }
-      viewAllHref="/products">
-      {discountedProducts.map((product) => (
-        <ProductCarouselItem key={product.id}>
-          <ProductCard product={product} />
-        </ProductCarouselItem>
-      ))}
-    </ProductCarousel>
   );
 }
 

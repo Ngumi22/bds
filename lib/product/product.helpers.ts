@@ -1,6 +1,66 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, StockStatus } from "@prisma/client";
 import { normalizeColorValue } from "../utils/color-helpers";
 import { MinimalProductData } from "./product.types";
+
+// Define the exact payload type returned by your new select statement
+export const productSelectPayload = {
+  id: true,
+  name: true,
+  price: true,
+  originalPrice: true,
+  categoryId: true,
+  mainImage: true,
+  slug: true,
+  stockStatus: true,
+  hasVariants: true,
+  isActive: true,
+  featured: true,
+  brand: {
+    select: {
+      name: true,
+      slug: true,
+    },
+  },
+  category: {
+    select: {
+      name: true,
+      slug: true,
+    },
+  },
+} satisfies Prisma.ProductSelect;
+
+type RawProductPayload = Prisma.ProductGetPayload<{
+  select: typeof productSelectPayload;
+}>;
+
+export function transformMinimalProduct(
+  p: RawProductPayload
+): MinimalProductData {
+  return {
+    id: p.id,
+    name: p.name,
+    price: p.price,
+
+    originalPrice: p.originalPrice,
+
+    categoryId: p.categoryId,
+    slug: p.slug,
+    stockStatus: p.stockStatus as StockStatus,
+    hasVariants: p.hasVariants,
+    isActive: p.isActive,
+    featured: p.featured,
+
+    brand: p.brand?.name ?? undefined,
+
+    category: p.category?.name ?? undefined,
+
+    mainImage: p.mainImage ?? "",
+
+    rating: undefined,
+    collections: undefined,
+    colorVariants: undefined,
+  };
+}
 
 export const minimalProductSelect: Prisma.ProductSelect = {
   id: true,
@@ -9,36 +69,22 @@ export const minimalProductSelect: Prisma.ProductSelect = {
   originalPrice: true,
   categoryId: true,
   mainImage: true,
-  brand: true,
   slug: true,
   stockStatus: true,
   hasVariants: true,
   isActive: true,
   featured: true,
+  brand: {
+    select: {
+      name: true,
+      slug: true,
+    },
+  },
   category: {
     select: {
-      parent: { select: { id: true, name: true, slug: true } },
+      name: true,
+      slug: true,
     },
-  },
-  collections: {
-    include: {
-      collection: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          collectionType: true,
-          startsAt: true,
-          endsAt: true,
-        },
-      },
-    },
-  },
-  variantGroups: {
-    include: {
-      options: { orderBy: { name: "asc" } },
-    },
-    orderBy: { name: "asc" },
   },
 };
 

@@ -25,14 +25,10 @@ import { formatCurrency } from "@/lib/utils/form-helpers";
 interface ProductsFiltersProps {
   data: ProductSearchResult;
   searchParams: ProductSearchParams;
-  isFetching: boolean;
+  isFetching?: boolean;
 }
 
-export function ProductsFilters({
-  data,
-  searchParams,
-  isFetching,
-}: ProductsFiltersProps) {
+export function ProductsFilters({ data, searchParams }: ProductsFiltersProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useQueryState("search");
@@ -199,7 +195,6 @@ export function ProductsFilters({
       </div>
 
       <div className="hidden lg:block">
-        {/* Active Filters Section - Only shown when filters are applied */}
         {hasActiveFilters && (
           <div className="space-y-3 mb-6">
             <div className="flex items-center justify-between gap-4">

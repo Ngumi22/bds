@@ -12,6 +12,10 @@ import {
   CATEGORY_TAG,
   MEGA_MENU_CACHE_KEYS,
 } from "../constants";
+import {
+  productSelectPayload,
+  transformMinimalProduct,
+} from "../product/product.helpers";
 
 type CategoryFormData = z.infer<typeof categoryFormSchema>;
 
@@ -431,43 +435,60 @@ export const getFeaturedProducts = unstable_cache(
   { revalidate: 3600, tags: [MEGA_MENU_CACHE_KEYS.FEATURED_PRODUCTS] }
 );
 
+interface FeaturedProductData {
+  name: string;
+  slug: string;
+  price: number;
+  mainImage: string | null;
+}
+
 export const getMegaMenuCategories = unstable_cache(
   async () => {
-    const [categories, brandsRes, featuredRes] = await Promise.all([
+    const [categories, brandsRes] = await Promise.all([
       prisma.category.findMany({
         where: { isActive: true, parentId: null },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
           children: {
             where: { isActive: true },
             select: { id: true, name: true, slug: true },
+          },
+          products: {
+            where: { isActive: true, featured: true },
+            orderBy: { createdAt: "desc" },
+            take: 4,
+            select: {
+              name: true,
+              slug: true,
+              price: true,
+              mainImage: true,
+            },
           },
         },
         orderBy: { name: "asc" },
       }),
       getBrands(),
-      getFeaturedProducts(),
     ]);
 
     const brands = brandsRes.data;
-    const featuredProducts = featuredRes.data;
 
     const transformed = categories.map((cat) => {
-      const allCategoryIds = [cat.id, ...cat.children.map((child) => child.id)];
-
-      const matchedProducts = featuredProducts.filter((p) =>
-        allCategoryIds.includes(p.categoryId ?? "")
-      );
+      const featuredProducts = cat.products as FeaturedProductData[];
 
       const featuredProductList =
-        matchedProducts.length > 0
-          ? matchedProducts.map((product) => ({
+        featuredProducts.length > 0
+          ? featuredProducts.map((product) => ({
               name: product.name,
+              slug: product.slug,
               price: product.price,
               mainImage: product.mainImage ?? "/placeholder.svg",
             }))
           : [
               {
                 name: "Coming Soon",
+                slug: "coming-soon",
                 price: 0,
                 mainImage: "/placeholder.svg",
               },
@@ -475,16 +496,23 @@ export const getMegaMenuCategories = unstable_cache(
 
       return {
         name: cat.name,
-        href: `/category/${cat.slug}`,
+        slug: cat.slug,
+        href: `/products?categories=${cat.slug}`,
+
         subcategories: cat.children.map((child) => ({
           name: child.name,
-          href: `/category/${child.slug}`,
+          slug: child.slug,
+          href: `/products?categories=${cat.slug}&subCategories=${child.slug}`,
         })),
+
         featuredProducts: featuredProductList,
+
         brands: brands.slice(0, 6).map((b) => ({
           name: b.name,
+          slug: b.slug,
           logo: b.logo ?? "/placeholder-logo.svg",
         })),
+
         promotion: {
           title: `Discover ${cat.name}`,
           description: `Explore the latest ${cat.name} products.`,
@@ -496,5 +524,8 @@ export const getMegaMenuCategories = unstable_cache(
     return { success: true, data: transformed };
   },
   [MEGA_MENU_CACHE_KEYS.MEGA_MENU],
-  { revalidate: 3600, tags: [MEGA_MENU_CACHE_KEYS.MEGA_MENU] }
+  {
+    revalidate: 3600,
+    tags: [MEGA_MENU_CACHE_KEYS.MEGA_MENU, "categories", "products", "brands"],
+  }
 );

@@ -44,11 +44,10 @@ export default function QuickBuy({
   const message = encodeURIComponent(
     `Hello, I'm interested in buying:
 
-Product: ${product.name}
-Quantity: ${quantity}
-${variantText ? "Variants:\n" + variantText : ""}
-Link: ${process.env.NEXT_PUBLIC_BASE_URL}/products/${product.slug}
-`
+    Product: ${product.name}
+    Quantity: ${quantity}
+    ${variantText ? "Variants:\n" + variantText : ""}
+    `
   );
 
   let icon = whatsappIcon.icon;

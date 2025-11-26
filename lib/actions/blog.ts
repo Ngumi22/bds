@@ -500,7 +500,7 @@ export const getAllBlogPosts = unstable_cache(
         take: limit,
         include: {
           category: { select: { id: true, name: true, slug: true } },
-          author: { select: { id: true, name: true, email: true } },
+          author: { select: { id: true, name: true } },
         },
       }),
     ]);

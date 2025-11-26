@@ -24,6 +24,8 @@ import { MinimalProductData } from "../utils/flash-sale";
 import {
   mapPrismaProductToMinimal,
   minimalProductSelect,
+  productSelectPayload,
+  transformMinimalProduct,
 } from "../product/product.helpers";
 import { cache } from "react";
 
@@ -857,92 +859,51 @@ export interface FlashSaleData {
 }
 
 export const getFlashSaleData = unstable_cache(
-  async (): Promise<FlashSaleData | null> => {
-    try {
-      const now = new Date();
+  async () => {
+    const now = new Date();
 
-      const flashSaleCollection = await prisma.collection.findFirst({
-        where: {
-          collectionType: CollectionType.FLASH_SALE,
-          OR: [
-            { startsAt: { lte: now }, endsAt: { gte: now } },
-            { startsAt: null, endsAt: null },
-            { startsAt: { lte: now }, endsAt: null },
-            { startsAt: null, endsAt: { gte: now } },
-          ],
-        },
-        select: {
-          id: true,
-          slug: true,
-          name: true,
-          endsAt: true,
-        },
-      });
-
-      if (!flashSaleCollection) return null;
-
-      const flashSaleProducts = await (
-        await createCachedProductFetcher({
-          where: {
-            collections: {
-              some: { collection: { slug: flashSaleCollection.slug } },
-            },
-          },
+    const flashSale = await prisma.collection.findFirst({
+      where: {
+        collectionType: "FLASH_SALE",
+        OR: [
+          { startsAt: { lte: now }, endsAt: { gte: now } },
+          { startsAt: null, endsAt: { gte: now } },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        endsAt: true,
+        products: {
           take: 6,
-          cacheKey: `flash-sale-products-${flashSaleCollection.slug}`,
-          tags: ["flash-sale", "products"],
-          revalidate: 60 * 10, // 10 minutes
-        })
-      )();
+          where: { product: { isActive: true } },
+          select: {
+            product: { select: productSelectPayload },
+          },
+        },
+      },
+    });
 
-      if (flashSaleProducts.length === 0) return null;
+    if (!flashSale || !flashSale.products.length) return null;
 
-      const saleEndDate =
-        flashSaleCollection.endsAt ??
-        new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const safeEndDate =
+      flashSale.endsAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-      // Calculate time left on the server
-      const calculateTimeLeft = (endDate: Date) => {
-        const now = Date.now();
-        const difference = endDate.getTime() - now;
-
-        if (difference <= 0) {
-          return {
-            days: 0,
-            hours: 0,
-            minutes: 0,
-            seconds: 0,
-            hasEnded: true,
-          };
-        }
-
-        return {
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          seconds: Math.floor((difference / 1000) % 60),
-          hasEnded: false,
-        };
-      };
-
-      const timeLeft = calculateTimeLeft(saleEndDate);
-
-      return {
-        products: flashSaleProducts.slice(0, 6), // Limit to 6 products
-        saleEndDate,
-        collectionName: flashSaleCollection.name,
-        collectionId: flashSaleCollection.id,
-        timeLeft,
-      };
-    } catch (error) {
-      console.error("Error fetching flash sale data:", error);
-      return null;
-    }
+    return {
+      collectionId: flashSale.id,
+      collectionName: flashSale.name,
+      collectionSlug: flashSale.slug,
+      saleEndDate: safeEndDate,
+      products: flashSale.products.map((p) =>
+        transformMinimalProduct(p.product)
+      ),
+    };
   },
-  ["flash-sale-data"],
+  ["flash-sale-query"],
   {
     tags: ["flash-sale", "products"],
-    revalidate: 60 * 10, // 10 minutes
+    revalidate: 300,
   }
 );
 

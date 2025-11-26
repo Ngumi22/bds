@@ -2,7 +2,6 @@ import { Prisma, StockStatus } from "@prisma/client";
 import { normalizeColorValue } from "../utils/color-helpers";
 import { MinimalProductData } from "./product.types";
 
-// Define the exact payload type returned by your new select statement
 export const productSelectPayload = {
   id: true,
   name: true,
@@ -137,6 +136,8 @@ export const mapPrismaProductToMinimal = (p: any): MinimalProductData => {
     hasVariants: computedHasVariants,
     isActive: p.isActive,
     featured: p.featured,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
     collections: p.collections?.map((pc: any) => ({
       id: pc.id,
       collection: pc.collection,

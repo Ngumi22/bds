@@ -16,6 +16,8 @@ export interface MinimalProductData {
   hasVariants: boolean;
   isActive: boolean;
   featured?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
   collections?: ProductCollection[];
   colorVariants?: Array<{
     name: string;

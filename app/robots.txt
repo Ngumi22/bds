@@ -1,9 +1,0 @@
-# Allow all crawlers
-User-agent: *
-Allow: /
-
-# Disallow admin pages
-Disallow: /dashboard/
-
-# Sitemap location
-Sitemap: https://www.bernzzdigitalsolutions.co.ke/sitemap.xml

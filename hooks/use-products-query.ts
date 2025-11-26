@@ -4,7 +4,10 @@ import { useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { StockStatus } from "@prisma/client";
 import { filterProducts } from "@/lib/product/fetchProducts";
-import { ProductSearchParams } from "@/lib/product/product.types";
+import {
+  ProductSearchParams,
+  ProductSearchResult,
+} from "@/lib/product/product.types";
 
 const RESERVED_PARAMS = new Set([
   "search",
@@ -22,7 +25,7 @@ const RESERVED_PARAMS = new Set([
   "categoryId",
 ]);
 
-export function useProductsQuery() {
+export function useProductsQuery(initialData?: ProductSearchResult) {
   const urlParams = useSearchParams();
 
   const page = Number(urlParams.get("page") || "1");
@@ -64,16 +67,16 @@ export function useProductsQuery() {
 
   const query = useQuery({
     queryKey: ["products", searchParams],
-
     queryFn: () => filterProducts(searchParams),
     placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 2,
     gcTime: 1000 * 60 * 30,
+    initialData: initialData,
   });
 
   return {
     ...query,
-    isLoading: query.isLoading,
+    isLoading: query.isLoading && !initialData,
     isFetching: query.isFetching,
     searchParams,
   };

@@ -180,9 +180,7 @@ export function PriceFilter({ priceRange }: PriceFilterProps) {
       <div className="space-y-2 border-t border-border pt-4">
         <div className="text-xs text-muted-foreground">
           The highest price is{" "}
-          <span className="text-xs font-semibold">
-            {formatCurrency(priceRange.max)}
-          </span>
+          <span className="text-xs">{formatCurrency(priceRange.max)}</span>
         </div>
         <Slider
           min={priceRange.min}
@@ -214,7 +212,7 @@ export function PriceFilter({ priceRange }: PriceFilterProps) {
             />
             <label
               className={cn(
-                "absolute left-3 text-xs font-medium text-muted-foreground pointer-events-none transition-all duration-200 origin-left",
+                "absolute left-3 text-xs text-muted-foreground pointer-events-none transition-all duration-200 origin-left",
                 showMinLabel
                   ? "top-1 scale-75 text-foreground"
                   : "top-1/2 -translate-y-1/2 scale-100"
@@ -235,7 +233,7 @@ export function PriceFilter({ priceRange }: PriceFilterProps) {
             />
             <label
               className={cn(
-                "absolute left-3 text-xs font-medium text-muted-foreground pointer-events-none transition-all duration-200 origin-left",
+                "absolute left-3 text-xs text-muted-foreground pointer-events-none transition-all duration-200 origin-left",
                 showMaxLabel
                   ? "top-1 scale-75 text-foreground"
                   : "top-1/2 -translate-y-1/2 scale-100"

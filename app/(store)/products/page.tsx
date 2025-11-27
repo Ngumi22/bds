@@ -228,33 +228,6 @@ export default async function ProductsPage({ searchParams }: Props) {
           __html: JSON.stringify(localBusinessJsonLd),
         }}
       />
-      {/*
-      <div className="prose max-w-3xl mb-6">
-        <h1 className="text-2xl font-semibold">{summaryHeading}</h1>
-        <p className="text-sm text-gray-700">{summaryParagraph}</p>
-      </div>
-
-      <div className="mb-6 max-w-3xl">
-        <h2 className="text-lg font-medium mb-2">Frequently asked questions</h2>
-        <dl className="space-y-3 text-sm text-gray-700">
-          <div>
-            <dt className="font-semibold">
-              Where can I buy {titlePrefix} in Kenya?
-            </dt>
-            <dd>
-              Visit {baseUrl} — we offer nationwide delivery and competitive
-              pricing.
-            </dd>
-          </div>
-          <div>
-            <dt className="font-semibold">Do you ship across Kenya?</dt>
-            <dd>
-              Yes. Delivery times and fees vary by location — see the product
-              page for details.
-            </dd>
-          </div>
-        </dl>
-      </div> */}
 
       <div className="flex flex-col lg:flex-row gap-8">
         <Suspense fallback={<ProductsLoading />}>

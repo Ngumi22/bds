@@ -2,58 +2,40 @@
 
 import { useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { StockStatus } from "@prisma/client";
+import { useQueryStates } from "nuqs";
+import { useRef } from "react";
 import { filterProducts } from "@/lib/product/fetchProducts";
 import {
   ProductSearchParams,
   ProductSearchResult,
 } from "@/lib/product/product.types";
-
-const RESERVED_PARAMS = new Set([
-  "search",
-  "category",
-  "categories",
-  "subCategories",
-  "brands",
-  "collections",
-  "minPrice",
-  "maxPrice",
-  "stockStatus",
-  "sortBy",
-  "sortOrder",
-  "page",
-  "categoryId",
-]);
+import { searchParamsParsers } from "./searchParams";
 
 export function useProductsQuery(initialData?: ProductSearchResult) {
-  const urlParams = useSearchParams();
+  const [params] = useQueryStates(searchParamsParsers);
 
-  const page = Number(urlParams.get("page") || "1");
-  const minPrice = Number(urlParams.get("minPrice") || undefined);
-  const maxPrice = Number(urlParams.get("maxPrice") || undefined);
-  const stockStatus = urlParams.get("stockStatus")?.split(",") || [];
-
+  const rawSearchParams = useSearchParams();
+  const KNOWN_KEYS = new Set(Object.keys(searchParamsParsers));
   const searchParams: ProductSearchParams = {
-    searchQuery: urlParams.get("search") || undefined,
-    category: urlParams.get("category") || undefined,
-    categories: urlParams.get("categories")?.split(",").filter(Boolean),
-    categoryId: urlParams.get("categoryId") || undefined,
-    subCategories: urlParams.get("subCategories")?.split(",").filter(Boolean),
-    brands: urlParams.get("brands")?.split(",").filter(Boolean),
-    collections: urlParams.get("collections")?.split(",").filter(Boolean),
-    minPrice: isNaN(minPrice) ? undefined : minPrice,
-    maxPrice: isNaN(maxPrice) ? undefined : maxPrice,
-    stockStatus:
-      stockStatus.length > 0 ? (stockStatus as StockStatus[]) : undefined,
-    sortBy: (urlParams.get("sortBy") as any) || "createdAt",
-    sortOrder: (urlParams.get("sortOrder") as any) || "desc",
-    page: page < 1 ? 1 : page,
+    searchQuery: params.search || undefined,
+    category: params.category || undefined,
+    categories: params.categories || undefined,
+    categoryId: params.categoryId || undefined,
+    subCategories: params.subCategories || undefined,
+    brands: params.brands || undefined,
+    collections: params.collections || undefined,
+    minPrice: params.minPrice ?? undefined,
+    maxPrice: params.maxPrice ?? undefined,
+    stockStatus: params.stockStatus || undefined,
+    sortBy: params.sortBy as ProductSearchParams["sortBy"],
+    sortOrder: params.sortOrder as "asc" | "desc",
+    page: params.page,
     limit: 24,
     specifications: [],
   };
 
-  for (const [key, value] of urlParams.entries()) {
-    if (!RESERVED_PARAMS.has(key) && value) {
+  for (const [key, value] of rawSearchParams.entries()) {
+    if (!KNOWN_KEYS.has(key) && value) {
       searchParams.specifications!.push({
         key: key,
         values: value.split(",").filter(Boolean),
@@ -64,20 +46,23 @@ export function useProductsQuery(initialData?: ProductSearchResult) {
   if (searchParams.specifications?.length === 0) {
     searchParams.specifications = undefined;
   }
+  const initialSearchParams = useRef(JSON.stringify(searchParams));
+
+  const isInitialState =
+    initialSearchParams.current === JSON.stringify(searchParams);
 
   const query = useQuery({
     queryKey: ["products", searchParams],
     queryFn: () => filterProducts(searchParams),
     placeholderData: keepPreviousData,
+    initialData: isInitialState ? initialData : undefined,
     staleTime: 1000 * 60 * 2,
     gcTime: 1000 * 60 * 30,
-    initialData: initialData,
   });
 
   return {
     ...query,
-    isLoading: query.isLoading && !initialData,
-    isFetching: query.isFetching,
+    isLoading: query.isLoading && !query.data,
     searchParams,
   };
 }

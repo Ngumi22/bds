@@ -42,15 +42,16 @@ export function ProductsContent({
 
   return (
     <div className="space-y-6 md:space-y-8 flex-1">
-      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-        <div className="w-full lg:w-60 lg:shrink-0">
+      <div className="flex flex-col lg:flex-row gap-3 lg:gap-8">
+        <div className="flex items-center w-full lg:w-60 lg:shrink-0">
           <ProductsFilters
             data={productsData}
             searchParams={searchParams}
             isFetching={isFetching}
           />
-          <div className="mt-4 md:hidden">
-            <ProductsSearch />
+
+          <div className="md:hidden">
+            <ProductsSort />
           </div>
         </div>
 
@@ -60,7 +61,7 @@ export function ProductsContent({
             isFetching ? "opacity-50 pointer-events-none" : "opacity-100"
           )}>
           <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-            <p className="text-sm text-gray-500 text-center sm:text-left">
+            <p className="hidden md:block text-sm text-gray-500 text-center sm:text-left">
               Showing{" "}
               <span className="font-medium">
                 {productsData.products.length}
@@ -69,10 +70,9 @@ export function ProductsContent({
               products
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 items-center sm:justify-end w-full sm:w-auto">
-              <div className="hidden sm:block flex-1">
-                <ProductsSearch />
-              </div>
+            <div className="hidden flex-1 sm:flex flex-col sm:flex-row gap-3 items-center sm:justify-end w-full sm:w-auto">
+              <ProductsSearch />
+
               <ProductsSort />
             </div>
           </div>

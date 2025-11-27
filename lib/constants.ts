@@ -24,9 +24,9 @@ export const PRODUCT_TAG = (slug: string) => `product-${slug}`;
 export const ATLAS_SEARCH_INDEX_NAME = "products";
 
 export const PRODUCT_CACHE_TTL = {
-  PRODUCTS: 300, // 5 minutes
-  PRODUCT: 600, // 10 minutes
-  PRODUCT_DETAIL: 900, // 15 minutes for detailed product pages
+  PRODUCTS: 3600,
+  PRODUCT: 7200,
+  PRODUCT_DETAIL: 7200,
 } as const;
 
 export const VARIANTS_TAG = (productId: string) => `variants-${productId}`;
@@ -34,10 +34,10 @@ export const PRODUCT_VARIANTS_KEY = (productId: string) =>
   `product:${productId}:variants`;
 
 export const BLOG_CACHE_TTL = {
-  BLOG_CATEGORIES: 300, // 5 minutes
-  BLOG_CATEGORY: 600, // 10 minutes
-  BLOG_POSTS: 300, // 5 minutes
-  BLOG_POST: 600, // 10 minutes
+  BLOG_CATEGORIES: 3600,
+  BLOG_CATEGORY: 7200,
+  BLOG_POSTS: 3600 * 5,
+  BLOG_POST: 3600 * 5,
 } as const;
 
 export const BLOG_CATEGORY_TAG = (id: string) => `${BLOG_CATEGORIES_TAG}:${id}`;
@@ -48,38 +48,33 @@ export const BLOG_POSTS_TAG = "blog-posts";
 export const BRANDS_TAG = "brands";
 
 export const BRAND_CACHE_TTL = {
-  BRANDS: 300, // 5 minutes
-  BRAND: 600, // 10 minutes
+  BRANDS: 3600,
+  BRAND: 7200,
 } as const;
 
-// Tag helpers
 export const BRAND_TAG = (id: string) => `${BRANDS_TAG}:${id}`;
 
 export const CATEGORIES_TAG = "categories";
 
 export const CATEGORIES_CACHE_TTL = {
-  CATEGORIES: 300, // 5 minutes
-  CATEGORY: 600, // 10 minutes
+  CATEGORIES: 3600,
+  CATEGORY: 7200,
 } as const;
-
-// Tag helpers
 export const CATEGORY_TAG = (id: string) => `${CATEGORIES_TAG}:${id}`;
 
 export const COLLECTIONS_TAG = "collections";
 
-// Cache TTL constants
 export const COLLECTIONS_CACHE_TTL = {
-  COLLECTIONS: 300, // 5 minutes
-  COLLECTION: 600, // 10 minutes
+  COLLECTIONS: 3600,
+  COLLECTION: 7200,
 } as const;
 
-// Tag helpers
 export const COLLECTION_TAG = (id: string) => `${COLLECTIONS_TAG}:${id}`;
 
 export const FEATURES_TAG = "product-features";
 
 export const PRODUCT_FEATURES_CACHE_TTL = {
-  PRODUCT_FEATURES: 300,
+  PRODUCT_FEATURES: 3600,
 } as const;
 
 export const PRODUCT_FEATURES_TAG = (productId: string) =>
